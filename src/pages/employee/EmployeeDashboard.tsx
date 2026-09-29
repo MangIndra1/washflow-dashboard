@@ -18,8 +18,8 @@ export default function EmployeeDashboard() {
   const navigate = useNavigate();
 
   // Filter for this branch
-  const branchOrders = currentUser?.branchId
-    ? orders.filter(o => o.branchId === currentUser.branchId)
+  const branchOrders = currentUser?.legacyBranchId
+    ? orders.filter(o => o.branchId === currentUser.legacyBranchId)
     : orders;
 
   const todayOrders = branchOrders.filter(o => o.createdAt === '2026-02-27');

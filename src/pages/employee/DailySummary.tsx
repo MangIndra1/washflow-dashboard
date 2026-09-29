@@ -14,8 +14,8 @@ const hourlyData = [
 export default function DailySummary() {
   const { currentUser } = useAuth();
 
-  const branchOrders = currentUser?.branchId
-    ? orders.filter(o => o.branchId === currentUser.branchId)
+  const branchOrders = currentUser?.legacyBranchId
+    ? orders.filter(o => o.branchId === currentUser.legacyBranchId)
     : orders;
 
   const completedOrders = branchOrders.filter(o => o.status === 'completed');

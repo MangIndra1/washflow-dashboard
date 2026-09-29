@@ -49,7 +49,7 @@ export default function EmployeeLayout() {
           </div>
           {sidebarOpen && (
             <div>
-              <p className="text-white font-semibold text-sm leading-none">CleanWave</p>
+              <p className="text-white font-semibold text-sm leading-none">WashFlow</p>
               <p className="text-slate-400 text-xs mt-0.5">Staff Portal</p>
             </div>
           )}

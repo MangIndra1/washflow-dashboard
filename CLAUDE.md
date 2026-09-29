@@ -36,7 +36,7 @@ masuk akal kalau sudah ada >5 klien membayar.
 
 ```
 src/
-  app/          bootstrap: App.tsx, router.ts (halaman dimuat lazy)
+  app/          bootstrap: App.tsx, router.tsx (halaman dimuat lazy, dijaga RequireRole)
   components/
     ui/         komponen shadcn (vendor — jangan diedit sembarangan)
     shared/     komponen buatan sendiri lintas fitur: MetricCard, Modal, StatusBadge, FormField, PageLoader
@@ -44,11 +44,12 @@ src/
   features/     satu folder per domain bisnis (auth sudah ada; orders, customers, ... diisi M1–M6)
                 isi tipikal: api.ts (query Supabase), hooks.ts, schemas.ts (zod), types.ts, components/
   pages/        tipis — hanya merakit fitur menjadi halaman (admin/, employee/, LoginPage)
-  lib/          utils.ts (cn), nanti supabase.ts, format.ts
+  lib/          utils.ts (cn), supabase.ts (client), nanti format.ts
+  types/        database.ts — tipe Supabase (regenerasi: npm run db:types)
   data/         mockData.ts — sementara, dihapus bertahap
   styles/
 docs/           spesifikasi awal (saas-product-spec.md, admin-employee-dashboard.md)
-supabase/       migrasi & seed SQL (ditambah di M1)
+supabase/       migrations/ (skema, RLS), seed.sql, demo-users.sql
 ```
 
 Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
@@ -66,7 +67,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
   untuk sekarang UI masih berbahasa Inggris (warisan Figma Make), belum perlu diterjemahkan
   kecuali sedang mengerjakan milestone M7.
 
-## Skema database (draf — akan diverifikasi ulang saat M1)
+## Skema database (sudah diimplementasi di `supabase/migrations/`; bagian di bawah ringkasan)
 
 - `branches` — cabang, jam buka, status.
 - `profiles` — terhubung ke `auth.users`; kolom `role` (admin/employee), `branch_id`.
@@ -86,7 +87,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 
 - [x] **M0** — Setup repo, pembersihan dependency, `tsconfig`, struktur folder.
 - [x] **M0.5** — Restrukturisasi folder (feature-based), alias `@/`, hapus 26 komponen shadcn & 22 dependency tak terpakai, Modal/StatusBadge dibangun ulang di atas shadcn, lazy route.
-- [ ] **M1** — Project Supabase + migrasi SQL skema di atas, login email/password, RLS per cabang, route guard per role.
+- [x] **M1** — Skema Supabase + RLS per cabang + seed demo + login email/password + route guard per role. (Sign-up publik dimatikan; staf dibuat admin lewat Dashboard.)
 - [ ] **M2** — CRUD cabang, layanan, karyawan (menggantikan mock data di halaman admin terkait).
 - [ ] **M3** — Alur inti: cari/tambah pelanggan → order baru → kanban status → pembayaran → struk. *(Titik "layak dipamerkan" pertama.)*
 - [ ] **M4** — Dashboard & laporan dari query nyata (bukan angka statis), export CSV.
@@ -98,6 +99,16 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 
 - Chunk `recharts` ~385 KB (hanya dimuat halaman yang berisi grafik). Sudah dipecah per route; optimasi lanjutan opsional.
 - Halaman masih memakai elemen HTML mentah (±78 `<button>`, ±66 input/select/table) — migrasi ke komponen shadcn bertahap per fitur.
-- Login saat ini hanya tombol tanpa password — akan diganti Supabase Auth di M1.
 - Mata uang & bahasa masih Inggris/USD (warisan Figma Make) — dijadwalkan di M7, jangan
   dikerjakan lebih awal supaya tidak bentrok dengan perubahan struktur data di M1–M3.
+
+## Model keamanan (M1) — wajib dipahami sebelum menambah fitur
+
+- Frontend hanya memakai **publishable key** (`VITE_SUPABASE_PUBLISHABLE_KEY`). Secret/service_role key dan password database tidak boleh masuk repo maupun `.env.local`. `.env.local` tidak boleh di-commit.
+- **RLS wajib aktif di setiap tabel baru** (`alter table ... enable row level security` + policy). Default privilege Supabase bisa memberi akses ke `anon` — jangan mengandalkan default.
+- Role **tidak pernah** dibaca dari metadata sign-up; `handle_new_user` selalu membuat role `employee` tanpa cabang. Admin/cabang ditetapkan manual (`demo-users.sql`).
+- Fungsi helper RLS (`is_staff`, `is_admin`, `my_branch_id`) ada di schema `private` (tidak terekspos Data API).
+- Uang disimpan sebagai bigint Rupiah. Kolom uang di `orders` dilindungi trigger (klien tidak bisa memalsukan total/paid_amount); harga item di-snapshot dari `services` oleh trigger; `paid_amount`/`payment_status` dihitung dari `payments`.
+- **Celah yang diketahui:** karyawan masih bisa mengisi `discount` sembarang pada order. Rencana M3: pindahkan pembuatan order + diskon ke RPC yang memvalidasi (promo/tier).
+- `legacyBranchId` di `AuthContext` hanyalah jembatan sementara untuk halaman karyawan yang masih memakai mockData — hapus di M3.
+- Komponen shadcn `Input`/`Textarea` sudah diberi `forwardRef` (React 18) supaya cocok dengan `register()` react-hook-form. Komponen lain yang dipakai dengan `register` harus diperlakukan sama.

@@ -23,8 +23,8 @@ export default function OrderManagement() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<OrderStatus | null>(null);
 
-  const branchOrders = currentUser?.branchId
-    ? orders.filter(o => o.branchId === currentUser.branchId)
+  const branchOrders = currentUser?.legacyBranchId
+    ? orders.filter(o => o.branchId === currentUser.legacyBranchId)
     : orders;
 
   const filtered = branchOrders.filter(o => {
