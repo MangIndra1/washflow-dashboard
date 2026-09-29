@@ -11,8 +11,8 @@ Bagian portofolio **Digital Product Mang In**.
 ## Stack
 
 - React 18 + TypeScript + Vite
-- Tailwind CSS v4 + shadcn/ui (Radix UI)
-- react-router, react-hook-form + zod, recharts
+- Tailwind CSS v4 + shadcn/ui (Radix UI) untuk komponen form/tabel
+- react-router, react-hook-form, recharts
 - Supabase (Postgres, Auth, RLS) — akan diintegrasikan mulai milestone M1
 
 ## Menjalankan secara lokal
@@ -34,16 +34,18 @@ npm run preview     # preview hasil build
 
 ```
 src/
-  app/
-    components/   # layout (AdminLayout, EmployeeLayout) + komponen ui (shadcn)
-    pages/         # halaman per role (admin/, employee/, LoginPage)
-    context/       # AuthContext
-    data/          # mockData.ts — data contoh, akan digantikan Supabase
-    routes.ts      # definisi route
-    App.tsx
+  app/          bootstrap (App.tsx, router.ts)
+  components/   ui/ (shadcn) · shared/ (komponen buatan sendiri) · layout/
+  features/     logika per domain bisnis (diisi bertahap)
+  pages/        halaman admin/ dan employee/
+  lib/          utilitas
+  data/         mockData.ts — sementara, akan digantikan Supabase
   styles/
-supabase/          # migrasi & skema database (ditambahkan di M1)
+docs/           spesifikasi awal
+supabase/       migrasi & seed database (ditambahkan di M1)
 ```
+
+Impor memakai alias `@/` (= `src/`).
 
 ## Kredit
 

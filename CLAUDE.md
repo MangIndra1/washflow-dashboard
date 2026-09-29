@@ -9,9 +9,9 @@ Proyek ini bagian dari portofolio **Digital Product Mang In** — tujuannya dua:
 1. Portofolio yang menunjukkan alur bisnis nyata (bukan sekadar kumpulan halaman UI).
 2. Basis untuk paket produk yang bisa dijual ke pemilik laundry (setup + otomasi WhatsApp via n8n).
 
-UI/UX awal dibuat dengan **Figma Make** dan sudah diekstrak ke `src/app/`. Kode itu
-dipakai sebagai lapisan tampilan — data dan logikanya sedang dibangun ulang dari nol
-supaya sungguhan berfungsi (bukan mock data statis).
+UI/UX awal dibuat dengan **Figma Make**. Halaman-halamannya (`src/pages/`) dipakai sebagai
+lapisan tampilan — data dan logikanya sedang dibangun ulang dari nol supaya sungguhan
+berfungsi (bukan mock data statis).
 
 ## Model bisnis: single-tenant
 
@@ -27,10 +27,35 @@ masuk akal kalau sudah ada >5 klien membayar.
 - **TanStack Query** + `supabase-js` — data fetching, cache, status loading/error.
 - **react-hook-form + zod** — validasi form (order, nomor HP, berat).
 - **n8n** — otomasi WhatsApp saat status order berubah jadi "siap diambil". Ini fitur pembeda utama, bukan pelengkap.
-- Styling: Tailwind CSS v4 + shadcn/ui (Radix UI). Jangan ganti design system ini.
+- Styling: Tailwind CSS v4. Halaman warisan Figma Make memakai elemen HTML mentah + kelas Tailwind
+  (belum memakai shadcn). `src/components/ui/` berisi 21 komponen shadcn yang disiapkan untuk form/tabel
+  M1–M3; ganti elemen mentah dengan komponen ini **saat halaman terkait dikerjakan**, bukan sekaligus.
+  Komponen shadcn lain ditambah sesuai kebutuhan: `npx shadcn@latest add <nama>`.
+
+## Struktur folder
+
+```
+src/
+  app/          bootstrap: App.tsx, router.ts (halaman dimuat lazy)
+  components/
+    ui/         komponen shadcn (vendor — jangan diedit sembarangan)
+    shared/     komponen buatan sendiri lintas fitur: MetricCard, Modal, StatusBadge, FormField, PageLoader
+    layout/     AdminLayout, EmployeeLayout
+  features/     satu folder per domain bisnis (auth sudah ada; orders, customers, ... diisi M1–M6)
+                isi tipikal: api.ts (query Supabase), hooks.ts, schemas.ts (zod), types.ts, components/
+  pages/        tipis — hanya merakit fitur menjadi halaman (admin/, employee/, LoginPage)
+  lib/          utils.ts (cn), nanti supabase.ts, format.ts
+  data/         mockData.ts — sementara, dihapus bertahap
+  styles/
+docs/           spesifikasi awal (saas-product-spec.md, admin-employee-dashboard.md)
+supabase/       migrasi & seed SQL (ditambah di M1)
+```
+
+Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 
 ## Aturan kode
 
+- Impor memakai alias `@/` (= `src/`), bukan path relatif `../../`.
 - `npm run typecheck` harus tetap bersih (0 error) sebelum commit. TypeScript strict mode aktif.
 - Jangan menambah dependency baru tanpa alasan jelas — banyak dependency Figma Make asli
   (MUI, react-dnd, react-slick, dll.) sudah dibuang karena tidak dipakai. Cek dulu dengan grep
@@ -60,6 +85,7 @@ masuk akal kalau sudah ada >5 klien membayar.
 ## Roadmap
 
 - [x] **M0** — Setup repo, pembersihan dependency, `tsconfig`, struktur folder.
+- [x] **M0.5** — Restrukturisasi folder (feature-based), alias `@/`, hapus 26 komponen shadcn & 22 dependency tak terpakai, Modal/StatusBadge dibangun ulang di atas shadcn, lazy route.
 - [ ] **M1** — Project Supabase + migrasi SQL skema di atas, login email/password, RLS per cabang, route guard per role.
 - [ ] **M2** — CRUD cabang, layanan, karyawan (menggantikan mock data di halaman admin terkait).
 - [ ] **M3** — Alur inti: cari/tambah pelanggan → order baru → kanban status → pembayaran → struk. *(Titik "layak dipamerkan" pertama.)*
@@ -70,7 +96,8 @@ masuk akal kalau sudah ada >5 klien membayar.
 
 ## Utang teknis yang diketahui (dari review awal)
 
-- Bundle JS satu chunk ~868 KB — perlu code splitting (`React.lazy` per route) sebelum rilis.
+- Chunk `recharts` ~385 KB (hanya dimuat halaman yang berisi grafik). Sudah dipecah per route; optimasi lanjutan opsional.
+- Halaman masih memakai elemen HTML mentah (±78 `<button>`, ±66 input/select/table) — migrasi ke komponen shadcn bertahap per fitur.
 - Login saat ini hanya tombol tanpa password — akan diganti Supabase Auth di M1.
 - Mata uang & bahasa masih Inggris/USD (warisan Figma Make) — dijadwalkan di M7, jangan
   dikerjakan lebih awal supaya tidak bentrok dengan perubahan struktur data di M1–M3.
