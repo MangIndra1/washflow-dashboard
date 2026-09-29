@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
+import { queryClient } from '@/lib/queryClient';
 import { supabase } from '@/lib/supabase';
 
 export type UserRole = 'admin' | 'employee';
@@ -60,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadSeq = useRef(0);
 
   const applyUser = useCallback((user: CurrentUser | null) => {
+    // Cache data milik pengguna sebelumnya tidak boleh terbawa ke pengguna lain.
+    if (!user || (userRef.current && userRef.current.id !== user.id)) queryClient.clear();
     userRef.current = user;
     setCurrentUser(user);
   }, []);
@@ -118,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'TOKEN_REFRESHED') return;
       // Sesi yang sama dipulihkan (mis. tab kembali fokus): tidak perlu memuat ulang profil.
       if (event === 'SIGNED_IN' && session && session.user.id === userRef.current?.id) return;
-      // Jangan memanggil API Supabase langsung di dalam callback ini (berisiko deadlock) , tunda satu tick.
+      // Jangan memanggil API Supabase langsung di dalam callback ini (berisiko deadlock), tunda satu tick.
       setTimeout(() => { void loadUser(session); }, 0);
     });
     return () => subscription.unsubscribe();

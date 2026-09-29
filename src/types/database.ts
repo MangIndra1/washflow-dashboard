@@ -1,5 +1,5 @@
 /**
- * Tipe database Supabase — DIBUAT dari skema di supabase/migrations.
+ * Tipe database Supabase, dibuat dari skema di supabase/migrations.
  * Regenerasi setelah skema berubah:  npm run db:types
  * (jangan edit manual)
  */
@@ -425,6 +425,8 @@ export type Database = {
           commission_rate: number;
           created_at: string;
           updated_at: string;
+          email: string | null;
+          job_title: string;
         };
         Insert: {
           id: string;
@@ -436,6 +438,8 @@ export type Database = {
           commission_rate?: number;
           created_at?: string;
           updated_at?: string;
+          email?: string | null;
+          job_title?: string;
         };
         Update: {
           id?: string;
@@ -447,6 +451,8 @@ export type Database = {
           commission_rate?: number;
           created_at?: string;
           updated_at?: string;
+          email?: string | null;
+          job_title?: string;
         };
         Relationships: [
           {
@@ -546,7 +552,34 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: { [_ in never]: never };
+    Views: {
+      branch_stats: {
+        Row: {
+          branch_id: string | null;
+          orders_today: number | null;
+          orders_30d: number | null;
+          revenue_30d: number | null;
+          customers_count: number | null;
+        };
+        Relationships: [];
+      };
+      employee_stats: {
+        Row: {
+          profile_id: string | null;
+          orders_30d: number | null;
+          commission_30d: number | null;
+        };
+        Relationships: [];
+      };
+      service_stats: {
+        Row: {
+          service_id: string | null;
+          orders_30d: number | null;
+          revenue_30d: number | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: { [_ in never]: never };
     Enums: {
       app_role: "admin" | "employee";
@@ -566,4 +599,5 @@ type PublicSchema = Database["public"];
 export type Tables<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Row"];
 export type TablesInsert<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Insert"];
 export type TablesUpdate<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Update"];
+export type Views<T extends keyof PublicSchema["Views"]> = PublicSchema["Views"][T]["Row"];
 export type Enums<T extends keyof PublicSchema["Enums"]> = PublicSchema["Enums"][T];

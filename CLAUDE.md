@@ -24,8 +24,8 @@ masuk akal kalau sudah ada >5 klien membayar.
 - **Vite + React + TypeScript**, lanjutan langsung dari kode Figma Make, tanpa migrasi framework.
 - **Supabase** (Postgres + Auth + Row Level Security + Realtime), database sungguhan
   tanpa perlu menulis server sendiri. Lebih cepat untuk solo developer dibanding Express + Postgres manual.
-- **TanStack Query** + `supabase-js`, data fetching, cache, status loading/error.
-- **react-hook-form + zod**, validasi form (order, nomor HP, berat).
+- **TanStack Query** + `supabase-js`, data fetching, cache, status loading/error. Pola: `features/<domain>/api.ts` (query Supabase, melempar error apa adanya) + `hooks.ts` (useQuery/useMutation, invalidasi cache) dan halaman hanya memakai hooks. Pesan error untuk pengguna lewat `pesanError()` di `src/lib/errors.ts`.
+- **react-hook-form**, validasi form dengan aturan bawaan (`required`, `pattern`, `validate`) plus constraint database sebagai lapis terakhir. Zod belum dipakai; tambahkan hanya jika validasi bersama antar form mulai berulang. Catatan: field yang `disabled` tidak ikut terkirim oleh react-hook-form, jadi isi nilainya secara manual saat submit.
 - **n8n**, otomasi WhatsApp saat status order berubah jadi "siap diambil". Ini fitur pembeda utama, bukan pelengkap.
 - Styling: Tailwind CSS v4. Halaman warisan Figma Make memakai elemen HTML mentah + kelas Tailwind
   (belum memakai shadcn). `src/components/ui/` berisi 21 komponen shadcn yang disiapkan untuk form/tabel
@@ -41,7 +41,7 @@ src/
     ui/         komponen shadcn (vendor, jangan diedit sembarangan)
     shared/     komponen buatan sendiri lintas fitur: MetricCard, Modal, StatusBadge, FormField, PageLoader
     layout/     AdminLayout, EmployeeLayout
-  features/     satu folder per domain bisnis (auth sudah ada; orders, customers, ... diisi M1–M6)
+  features/     satu folder per domain bisnis (auth, branches, services, staff sudah ada; orders, customers, ... diisi M3-M6)
                 isi tipikal: api.ts (query Supabase), hooks.ts, schemas.ts (zod), types.ts, components/
   pages/        tipis, hanya merakit fitur menjadi halaman (admin/, employee/, LoginPage)
   lib/          utils.ts (cn), supabase.ts (client), nanti format.ts
@@ -49,7 +49,7 @@ src/
   data/         mockData.ts, sementara, dihapus bertahap
   styles/
 docs/           spesifikasi awal (saas-product-spec.md, admin-employee-dashboard.md)
-supabase/       migrations/ (skema, RLS), seed.sql, demo-users.sql
+supabase/       migrations/ (skema, RLS, M2), seed.sql, demo-users.sql, functions/create-staff (Edge Function)
 ```
 
 Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
@@ -61,7 +61,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Jangan menambah dependency baru tanpa alasan jelas, banyak dependency Figma Make asli
   (MUI, react-dnd, react-slick, dll.) sudah dibuang karena tidak dipakai. Cek dulu dengan grep
   sebelum menambah package baru.
-- File di `src/app/data/mockData.ts` adalah data contoh sementara. Setiap halaman yang masih
+- File di `src/data/mockData.ts` adalah data contoh sementara. Setiap halaman yang masih
   mengimpor dari file ini adalah kandidat untuk dipindah ke query Supabase.
 - Semua teks UI berbahasa Indonesia dan uang memakai Rupiah lewat `src/lib/format.ts` (`formatRupiah`, `formatTanggal`). Jangan menulis `$` atau `toFixed` untuk uang, dan hindari tanda pisah panjang di teks tampilan.
 
@@ -86,7 +86,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M0**: Setup repo, pembersihan dependency, `tsconfig`, struktur folder.
 - [x] **M0.5**: Restrukturisasi folder (feature-based), alias `@/`, hapus 26 komponen shadcn & 22 dependency tak terpakai, Modal/StatusBadge dibangun ulang di atas shadcn, lazy route.
 - [x] **M1**: Skema Supabase + RLS per cabang + seed demo + login email/password + route guard per role. (Sign-up publik dimatikan; staf dibuat admin lewat Dashboard.)
-- [ ] **M2**: CRUD cabang, layanan, karyawan (menggantikan mock data di halaman admin terkait).
+- [x] **M2**: CRUD cabang, layanan, karyawan dari Supabase (TanStack Query, react-hook-form). Karyawan baru dibuat lewat Edge Function `create-staff` (butuh deploy, lihat README).
 - [ ] **M3**: Alur inti: cari/tambah pelanggan > order baru > kanban status > pembayaran > struk. *(Titik "layak dipamerkan" pertama.)*
 - [ ] **M4**: Dashboard & laporan dari query nyata (bukan angka statis), export CSV.
 - [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
@@ -108,3 +108,13 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - **Celah yang diketahui:** karyawan masih bisa mengisi `discount` sembarang pada order. Rencana M3: pindahkan pembuatan order + diskon ke RPC yang memvalidasi (promo/tier).
 - `legacyBranchId` di `AuthContext` hanyalah jembatan sementara untuk halaman karyawan yang masih memakai mockData, hapus di M3.
 - Komponen shadcn `Input`/`Textarea` sudah diberi `forwardRef` (React 18) supaya cocok dengan `register()` react-hook-form. Komponen lain yang dipakai dengan `register` harus diperlakukan sama.
+
+## Catatan M2
+
+- Kolom `profiles.email` disalin dari `auth.users` oleh trigger dan **tidak bisa diubah dari Data API** (`grant update` per kolom). Kolom yang boleh diubah admin: `full_name, phone, role, branch_id, is_active, commission_rate, job_title`.
+- Trigger `keep_one_active_admin` mencegah admin aktif terakhir dinonaktifkan, diturunkan, atau dihapus.
+- Statistik cabang, layanan, dan karyawan (30 hari terakhir) dibaca dari view `branch_stats`, `service_stats`, `employee_stats` (`security_invoker`, jadi mengikuti RLS pemanggil). Jika menambah view baru, wajib `security_invoker = true` dan `revoke all ... from anon`.
+- Membuat akun karyawan memerlukan hak admin Supabase Auth, sehingga dikerjakan Edge Function `create-staff` (secret key hanya ada di server). Fungsi memverifikasi JWT dan memeriksa role admin dari tabel `profiles`, bukan dari klaim token.
+- Menghapus cabang yang punya pesanan ditolak database (FK); UI menyarankan status Tutup. Menghapus layanan aman karena `order_items` menyimpan snapshot nama dan harga.
+- Jabatan (`job_title`) hanya label. Manajer resmi sebuah cabang adalah `branches.manager_id`.
+- Belum ada: ganti kata sandi sendiri, reset kata sandi oleh admin, undangan lewat email. Direncanakan sebelum demo ke klien.
