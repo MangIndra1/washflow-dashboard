@@ -28,13 +28,14 @@ npx supabase db push --include-seed   # skema + RLS + data demo fiktif
 ```
 
 4. Di Dashboard Supabase buat user demo (Authentication > Users), lalu jalankan `supabase/demo-users.sql` di SQL Editor untuk memberi role/cabang.
-5. Deploy fungsi penambah karyawan (sekali saja, setelah `link`):
+5. Deploy dua Edge Function untuk akun karyawan (sekali saja, setelah `link`; ulangi bila kodenya berubah):
 
 ```bash
 npx supabase functions deploy create-staff --no-verify-jwt --use-api
+npx supabase functions deploy reset-staff-password --no-verify-jwt --use-api
 ```
 
-   Fungsi memeriksa sendiri bahwa pemanggilnya admin aktif. Tanpa deploy ini, tombol Tambah Karyawan akan menampilkan pesan bahwa fungsi belum di-deploy; mengubah karyawan yang sudah ada tetap berfungsi.
+   Kedua fungsi memeriksa sendiri bahwa pemanggilnya admin aktif. Tanpa deploy ini, tombol Tambah Karyawan dan Atur Ulang Kata Sandi akan menampilkan pesan bahwa fungsi belum di-deploy; mengubah karyawan yang sudah ada tetap berfungsi.
 6. `npm run dev`
 
 Perintah lain:

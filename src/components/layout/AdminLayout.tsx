@@ -3,10 +3,11 @@ import { Outlet, NavLink, useNavigate } from 'react-router';
 import type { ReactElement } from 'react';
 import {
   LayoutDashboard, Building2, Users, Tag, BarChart3,
-  Package, Banknote, Star, Percent, Settings, LogOut,
-  Bell, ChevronDown, Waves, Menu, X, AlertCircle, ShoppingBag, CheckCircle,
+  Package, Banknote, Star, Percent, LogOut,
+  Bell, ChevronDown, KeyRound, Waves, Menu, X, AlertCircle, ShoppingBag, CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
+import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
 import { notifications } from '@/data/mockData';
 
 interface NavItem {
@@ -61,6 +62,7 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -150,7 +152,7 @@ export default function AdminLayout() {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-20">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 relative z-50">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -225,8 +227,11 @@ export default function AdminLayout() {
                     <p className="text-xs text-slate-400">{currentUser?.email}</p>
                   </div>
                   <div className="py-1">
-                    <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                      <Settings className="h-4 w-4" /> Pengaturan
+                    <button
+                      onClick={() => { setShowProfile(false); setShowPassword(true); }}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                    >
+                      <KeyRound className="h-4 w-4" /> Ganti kata sandi
                     </button>
                     <button
                       onClick={handleLogout}
@@ -248,6 +253,10 @@ export default function AdminLayout() {
           </div>
         </main>
       </div>
+
+      {showPassword && currentUser && (
+        <ChangePasswordDialog email={currentUser.email} onClose={() => setShowPassword(false)} />
+      )}
 
       {/* Overlay to close dropdowns */}
       {(showNotif || showProfile) && (

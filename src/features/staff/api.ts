@@ -59,28 +59,38 @@ export async function setStaffActive(id: string, isActive: boolean): Promise<voi
   if (error) throw error;
 }
 
-/**
- * Membuat akun butuh hak admin Supabase Auth, jadi dijalankan di Edge Function `create-staff`
- * (secret key hanya ada di server, tidak pernah di browser).
- */
-export async function createStaff(input: CreateStaffInput): Promise<void> {
-  const { error } = await supabase.functions.invoke('create-staff', { body: input });
+/** Memanggil Edge Function dan menerjemahkan kegagalannya menjadi pesan berbahasa Indonesia. */
+async function invokeFunction(name: string, body: object, fallback: string): Promise<void> {
+  const { error } = await supabase.functions.invoke(name, { body: body as Record<string, unknown> });
   if (!error) return;
 
   if (error instanceof FunctionsHttpError) {
     if (error.context.status === 404) {
-      throw new Error('Fungsi create-staff belum di-deploy. Lihat README bagian "Menambah karyawan".');
+      throw new Error(`Fungsi ${name} belum di-deploy. Lihat README bagian "Deploy Edge Function".`);
     }
     try {
-      const body = await error.context.json();
-      if (body?.error) throw new Error(String(body.error));
+      const data = await error.context.json();
+      if (data?.error) throw new Error(String(data.error));
     } catch (e) {
       if (e instanceof Error && e.message) throw e;
     }
-    throw new Error('Gagal membuat akun karyawan.');
+    throw new Error(fallback);
   }
   if (error instanceof FunctionsFetchError) {
     throw new Error('Server tidak dapat dihubungi. Periksa koneksi lalu coba lagi.');
   }
-  throw new Error('Gagal membuat akun karyawan.');
+  throw new Error(fallback);
+}
+
+/**
+ * Membuat akun butuh hak admin Supabase Auth, jadi dijalankan di Edge Function `create-staff`
+ * (secret key hanya ada di server, tidak pernah di browser).
+ */
+export function createStaff(input: CreateStaffInput): Promise<void> {
+  return invokeFunction('create-staff', input, 'Gagal membuat akun karyawan.');
+}
+
+/** Admin mengatur ulang kata sandi karyawan (Edge Function `reset-staff-password`). */
+export function resetStaffPassword(userId: string, password: string): Promise<void> {
+  return invokeFunction('reset-staff-password', { user_id: userId, password }, 'Gagal mengatur ulang kata sandi.');
 }

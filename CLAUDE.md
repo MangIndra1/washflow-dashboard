@@ -86,7 +86,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M0**: Setup repo, pembersihan dependency, `tsconfig`, struktur folder.
 - [x] **M0.5**: Restrukturisasi folder (feature-based), alias `@/`, hapus 26 komponen shadcn & 22 dependency tak terpakai, Modal/StatusBadge dibangun ulang di atas shadcn, lazy route.
 - [x] **M1**: Skema Supabase + RLS per cabang + seed demo + login email/password + route guard per role. (Sign-up publik dimatikan; staf dibuat admin lewat Dashboard.)
-- [x] **M2**: CRUD cabang, layanan, karyawan dari Supabase (TanStack Query, react-hook-form). Karyawan baru dibuat lewat Edge Function `create-staff` (butuh deploy, lihat README).
+- [x] **M2**: CRUD cabang, layanan, karyawan dari Supabase (TanStack Query, react-hook-form). Karyawan baru dibuat lewat Edge Function `create-staff` dan `reset-staff-password` (butuh deploy, lihat README).
 - [ ] **M3**: Alur inti: cari/tambah pelanggan > order baru > kanban status > pembayaran > struk. *(Titik "layak dipamerkan" pertama.)*
 - [ ] **M4**: Dashboard & laporan dari query nyata (bukan angka statis), export CSV.
 - [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
@@ -117,4 +117,5 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Membuat akun karyawan memerlukan hak admin Supabase Auth, sehingga dikerjakan Edge Function `create-staff` (secret key hanya ada di server). Fungsi memverifikasi JWT dan memeriksa role admin dari tabel `profiles`, bukan dari klaim token.
 - Menghapus cabang yang punya pesanan ditolak database (FK); UI menyarankan status Tutup. Menghapus layanan aman karena `order_items` menyimpan snapshot nama dan harga.
 - Jabatan (`job_title`) hanya label. Manajer resmi sebuah cabang adalah `branches.manager_id`.
-- Belum ada: ganti kata sandi sendiri, reset kata sandi oleh admin, undangan lewat email. Direncanakan sebelum demo ke klien.
+- Kata sandi: semua pengguna bisa mengganti sendiri (menu profil, memverifikasi kata sandi lama lewat `signInWithPassword` lalu `updateUser`). Admin mengatur ulang kata sandi karyawan lewat Edge Function `reset-staff-password` (tidak bisa untuk akun sendiri). Belum ada: undangan lewat email dan lupa kata sandi lewat email (butuh SMTP; direncanakan sebelum demo ke klien).
+- Header layout memakai `relative z-50` supaya menu profil/notifikasi di atas overlay penutup (z-40). Jangan menurunkannya.

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { createStaff, fetchStaff, setStaffActive, updateStaff } from './api';
+import { createStaff, fetchStaff, resetStaffPassword, setStaffActive, updateStaff } from './api';
 
 export const staffKeys = { all: ['staff'] as const };
 
@@ -33,4 +33,10 @@ export function useToggleStaff() {
 export function useCreateStaff() {
   const invalidate = useInvalidate();
   return useMutation({ mutationFn: createStaff, onSuccess: invalidate });
+}
+
+export function useResetStaffPassword() {
+  return useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) => resetStaffPassword(id, password),
+  });
 }

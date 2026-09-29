@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Plus, Search, ChevronUp, ChevronDown, Edit, UserX, UserCheck, Mail, Phone, Filter, Shuffle } from 'lucide-react';
+import { Plus, Search, ChevronUp, ChevronDown, Edit, UserX, UserCheck, Mail, Phone, Filter, Shuffle, KeyRound, Copy } from 'lucide-react';
 
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Modal } from '@/components/shared/Modal';
@@ -10,7 +10,7 @@ import { FormField, inputClass, selectClass } from '@/components/shared/FormFiel
 import { useAuth } from '@/features/auth/AuthContext';
 import { useBranches } from '@/features/branches/hooks';
 import type { AppRole, StaffItem } from '@/features/staff/api';
-import { useCreateStaff, useStaff, useToggleStaff, useUpdateStaff } from '@/features/staff/hooks';
+import { useCreateStaff, useResetStaffPassword, useStaff, useToggleStaff, useUpdateStaff } from '@/features/staff/hooks';
 import { pesanError } from '@/lib/errors';
 import { formatAngka, formatRupiah, formatTanggal } from '@/lib/format';
 
@@ -53,6 +53,7 @@ export default function EmployeeManagement() {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'name', dir: 'asc' });
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ open: boolean; employee: StaffItem | null }>({ open: false, employee: null });
+  const [resetTarget, setResetTarget] = useState<StaffItem | null>(null);
 
   useEffect(() => { setPage(1); }, [search, filterBranch, filterStatus]);
 
@@ -224,6 +225,15 @@ export default function EmployeeManagement() {
                                 <Edit className="h-3.5 w-3.5" />
                               </button>
                               <button
+                                onClick={() => setResetTarget(emp)}
+                                disabled={isSelf}
+                                title={isSelf ? 'Gunakan menu Ganti kata sandi di pojok kanan atas' : 'Atur ulang kata sandi'}
+                                aria-label={`Atur ulang kata sandi ${emp.full_name}`}
+                                className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                <KeyRound className="h-3.5 w-3.5" />
+                              </button>
+                              <button
                                 onClick={() => onToggle(emp)}
                                 disabled={isSelf || toggle.isPending}
                                 title={isSelf ? 'Tidak bisa menonaktifkan akun sendiri' : emp.is_active ? 'Nonaktifkan' : 'Aktifkan'}
@@ -265,7 +275,68 @@ export default function EmployeeManagement() {
           onClose={() => setModal({ open: false, employee: null })}
         />
       )}
+
+      {resetTarget && <ResetPasswordModal employee={resetTarget} onClose={() => setResetTarget(null)} />}
     </div>
+  );
+}
+
+function ResetPasswordModal({ employee, onClose }: { employee: StaffItem; onClose: () => void }) {
+  const reset = useResetStaffPassword();
+  const [password, setPassword] = useState(() => randomPassword());
+  const valid = password.length >= 8 && password.length <= 72;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      toast.success('Kata sandi disalin.');
+    } catch {
+      toast.error('Tidak dapat menyalin. Salin manual dari kolom.');
+    }
+  };
+
+  const submit = async () => {
+    if (!valid) return;
+    try {
+      await reset.mutateAsync({ id: employee.id, password });
+      toast.success(`Kata sandi ${employee.full_name} diatur ulang. Berikan kata sandi baru kepada yang bersangkutan.`);
+      onClose();
+    } catch (e) {
+      toast.error(pesanError(e, 'Gagal mengatur ulang kata sandi.'));
+    }
+  };
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Atur Ulang Kata Sandi"
+      subtitle={`${employee.full_name} (${employee.email ?? 'tanpa email'})`}
+      size="sm"
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
+          <button type="button" onClick={submit} disabled={!valid || reset.isPending} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-60">
+            {reset.isPending ? 'Menyimpan...' : 'Atur Ulang'}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <FormField label="Kata Sandi Baru" required hint="Minimal 8 karakter. Catat dan berikan langsung ke karyawan; kata sandi tidak ditampilkan lagi setelah ini.">
+          <div className="flex gap-2">
+            <input className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={!valid} />
+            <button type="button" onClick={() => setPassword(randomPassword())} aria-label="Acak kata sandi" className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-3 text-sm text-slate-600 hover:bg-slate-50">
+              <Shuffle className="h-3.5 w-3.5" /> Acak
+            </button>
+            <button type="button" onClick={copy} aria-label="Salin kata sandi" className="flex items-center rounded-lg border border-slate-200 px-3 text-slate-600 hover:bg-slate-50">
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {!valid && <p className="text-xs text-red-600">Kata sandi harus 8 sampai 72 karakter</p>}
+        </FormField>
+      </div>
+    </Modal>
   );
 }
 
