@@ -1,14 +1,15 @@
-import { Download, CheckCircle, Clock, DollarSign, ShoppingBag, TrendingUp, Printer, AlertCircle } from 'lucide-react';
+import { Download, CheckCircle, Clock, Wallet, ShoppingBag, TrendingUp, Printer, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { orders, services } from '@/data/mockData';
 import { useAuth } from '@/features/auth/AuthContext';
+import { formatRupiah } from '@/lib/format';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 
 const hourlyData = [
-  { hour: '8am', orders: 4 }, { hour: '9am', orders: 7 }, { hour: '10am', orders: 9 },
-  { hour: '11am', orders: 6 }, { hour: '12pm', orders: 11 }, { hour: '1pm', orders: 8 },
-  { hour: '2pm', orders: 5 }, { hour: '3pm', orders: 7 }, { hour: '4pm', orders: 3 },
-  { hour: '5pm', orders: 2 },
+  { hour: '08.00', orders: 4 }, { hour: '09.00', orders: 7 }, { hour: '10.00', orders: 9 },
+  { hour: '11.00', orders: 6 }, { hour: '12.00', orders: 11 }, { hour: '13.00', orders: 8 },
+  { hour: '14.00', orders: 5 }, { hour: '15.00', orders: 7 }, { hour: '16.00', orders: 3 },
+  { hour: '17.00', orders: 2 },
 ];
 
 export default function DailySummary() {
@@ -37,17 +38,17 @@ export default function DailySummary() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Daily Summary</h1>
+          <h1 className="text-slate-900">Ringkasan Harian</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {currentUser?.branchName} · Friday, February 27, 2026
+            {currentUser?.branchName}, Jumat, 27 Februari 2026
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 shadow-sm">
-            <Printer className="h-4 w-4" /> Print Report
+            <Printer className="h-4 w-4" /> Cetak Laporan
           </button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 shadow-sm shadow-emerald-200">
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> Ekspor CSV
           </button>
         </div>
       </div>
@@ -56,17 +57,17 @@ export default function DailySummary() {
       {overdueOrders.length > 0 && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200">
           <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-700 font-medium">{overdueOrders.length} overdue order(s) need immediate attention before shift end</p>
+          <p className="text-sm text-red-700 font-medium">{overdueOrders.length} pesanan terlambat perlu segera ditangani sebelum shift berakhir</p>
         </div>
       )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: "Today's Orders", value: branchOrders.length, sub: '4 new this hour', icon: ShoppingBag, bg: 'bg-blue-100', color: 'text-blue-600', accent: 'bg-blue-500' },
-          { label: 'Revenue Collected', value: `$${totalRevenue.toFixed(2)}`, sub: 'Cash + digital', icon: DollarSign, bg: 'bg-emerald-100', color: 'text-emerald-600', accent: 'bg-emerald-500' },
-          { label: 'Completed', value: completedOrders.length, sub: 'Handed to customers', icon: CheckCircle, bg: 'bg-purple-100', color: 'text-purple-600', accent: 'bg-purple-500' },
-          { label: 'Still Active', value: activeOrders.length, sub: `${overdueOrders.length} overdue`, icon: Clock, bg: 'bg-amber-100', color: 'text-amber-600', accent: 'bg-amber-500' },
+          { label: 'Pesanan Hari Ini', value: branchOrders.length, sub: '4 baru dalam jam ini', icon: ShoppingBag, bg: 'bg-blue-100', color: 'text-blue-600', accent: 'bg-blue-500' },
+          { label: 'Pendapatan Diterima', value: formatRupiah(totalRevenue), sub: 'Tunai + digital', icon: Wallet, bg: 'bg-emerald-100', color: 'text-emerald-600', accent: 'bg-emerald-500' },
+          { label: 'Selesai', value: completedOrders.length, sub: 'Sudah diserahkan ke pelanggan', icon: CheckCircle, bg: 'bg-purple-100', color: 'text-purple-600', accent: 'bg-purple-500' },
+          { label: 'Masih Berjalan', value: activeOrders.length, sub: `${overdueOrders.length} terlambat`, icon: Clock, bg: 'bg-amber-100', color: 'text-amber-600', accent: 'bg-amber-500' },
         ].map(c => (
           <div key={c.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 relative overflow-hidden">
             <div className={`absolute top-0 left-0 w-1 h-full rounded-l-xl ${c.accent}`} />
@@ -85,9 +86,9 @@ export default function DailySummary() {
       {/* Revenue Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Paid Revenue', value: `$${totalRevenue.toFixed(2)}`, pct: '78%', color: 'bg-emerald-500', textColor: 'text-emerald-700' },
-          { label: 'Pending (Unpaid)', value: `$${unpaidTotal.toFixed(2)}`, pct: '18%', color: 'bg-red-500', textColor: 'text-red-600' },
-          { label: 'Total Potential', value: `$${(totalRevenue + unpaidTotal).toFixed(2)}`, pct: '100%', color: 'bg-blue-500', textColor: 'text-blue-700' },
+          { label: 'Pendapatan Lunas', value: formatRupiah(totalRevenue), pct: '78%', color: 'bg-emerald-500', textColor: 'text-emerald-700' },
+          { label: 'Belum Dibayar', value: formatRupiah(unpaidTotal), pct: '18%', color: 'bg-red-500', textColor: 'text-red-600' },
+          { label: 'Total Potensi', value: formatRupiah(totalRevenue + unpaidTotal), pct: '100%', color: 'bg-blue-500', textColor: 'text-blue-700' },
         ].map(r => (
           <div key={r.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-2">
@@ -102,13 +103,13 @@ export default function DailySummary() {
         ))}
       </div>
 
-      {/* Hourly Chart + Service Breakdown */}
+      {/* Hourly Chart + Rincian Layanan */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Hourly Orders */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="mb-5">
-            <h3 className="text-slate-900">Hourly Order Volume</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Orders received by hour today</p>
+            <h3 className="text-slate-900">Jumlah Pesanan per Jam</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Pesanan masuk per jam hari ini</p>
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={hourlyData}>
@@ -119,18 +120,18 @@ export default function DailySummary() {
                 contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }}
                 labelStyle={{ color: '#94A3B8', fontSize: 11 }}
                 itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
-                formatter={(v: number) => [v, 'Orders']}
+                formatter={(v: number) => [v, 'Pesanan']}
               />
               <Bar dataKey="orders" fill="#10B981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Service Breakdown */}
+        {/* Rincian Layanan */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="mb-5">
-            <h3 className="text-slate-900">Service Breakdown</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Orders and revenue by service type</p>
+            <h3 className="text-slate-900">Rincian Layanan</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Pesanan dan pendapatan per jenis layanan</p>
           </div>
           <div className="space-y-3">
             {serviceBreak.length > 0 ? serviceBreak.map(s => (
@@ -139,8 +140,8 @@ export default function DailySummary() {
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-medium text-slate-700">{s.name}</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400">{s.count} orders</span>
-                      <span className="text-sm font-semibold text-slate-900">${s.revenue.toFixed(2)}</span>
+                      <span className="text-xs text-slate-400">{s.count} pesanan</span>
+                      <span className="text-sm font-semibold text-slate-900">{formatRupiah(s.revenue)}</span>
                     </div>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -151,10 +152,10 @@ export default function DailySummary() {
             )) : (
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { name: 'Wash & Fold', count: 6, revenue: 45.50 },
-                  { name: 'Express Wash', count: 3, revenue: 36.60 },
-                  { name: 'Dry Cleaning', count: 2, revenue: 60.00 },
-                  { name: 'Ironing', count: 4, revenue: 20.00 },
+                  { name: 'Cuci Kiloan Reguler', count: 6, revenue: 91000 },
+                  { name: 'Cuci Kiloan Express', count: 3, revenue: 73000 },
+                  { name: 'Dry Cleaning', count: 2, revenue: 120000 },
+                  { name: 'Setrika', count: 4, revenue: 40000 },
                 ].map(s => (
                   <div key={s.name}>
                     <div className="flex items-center justify-between mb-1">
@@ -176,19 +177,19 @@ export default function DailySummary() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
-            <h3 className="text-slate-900">Today's Order Log</h3>
-            <p className="text-slate-400 text-xs mt-0.5">All orders for {currentUser?.branchName} today</p>
+            <h3 className="text-slate-900">Log Pesanan Hari Ini</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Semua pesanan {currentUser?.branchName} hari ini</p>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-slate-500">Paid</span>
-            <div className="h-2 w-2 rounded-full bg-red-400 ml-2" /> <span className="text-slate-500">Unpaid</span>
+            <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-slate-500">Lunas</span>
+            <div className="h-2 w-2 rounded-full bg-red-400 ml-2" /> <span className="text-slate-500">Belum dibayar</span>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {['Order ID', 'Customer', 'Service', 'Employee', 'Amount', 'Payment', 'Status'].map(h => (
+                {['ID Pesanan', 'Pelanggan', 'Layanan', 'Karyawan', 'Jumlah', 'Pembayaran', 'Status'].map(h => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -203,7 +204,7 @@ export default function DailySummary() {
                   </td>
                   <td className="px-6 py-3.5 text-sm text-slate-600">{o.serviceName}</td>
                   <td className="px-6 py-3.5 text-sm text-slate-500">{o.employeeName}</td>
-                  <td className="px-6 py-3.5 text-sm font-semibold text-slate-900">${o.total.toFixed(2)}</td>
+                  <td className="px-6 py-3.5 text-sm font-semibold text-slate-900">{formatRupiah(o.total)}</td>
                   <td className="px-6 py-3.5"><StatusBadge status={o.paymentStatus} size="sm" /></td>
                   <td className="px-6 py-3.5"><StatusBadge status={o.status} size="sm" /></td>
                 </tr>
@@ -213,13 +214,13 @@ export default function DailySummary() {
         </div>
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-xl">
           <div className="flex items-center gap-6 text-sm">
-            <span className="text-slate-500">Total Orders: <span className="font-bold text-slate-900">{branchOrders.length}</span></span>
-            <span className="text-slate-500">Completed: <span className="font-bold text-green-700">{completedOrders.length}</span></span>
-            <span className="text-slate-500">Active: <span className="font-bold text-amber-700">{activeOrders.length}</span></span>
+            <span className="text-slate-500">Total Pesanan: <span className="font-bold text-slate-900">{branchOrders.length}</span></span>
+            <span className="text-slate-500">Selesai: <span className="font-bold text-green-700">{completedOrders.length}</span></span>
+            <span className="text-slate-500">Berjalan: <span className="font-bold text-amber-700">{activeOrders.length}</span></span>
           </div>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-emerald-500" />
-            <span className="text-sm font-bold text-emerald-700">Total Collected: ${totalRevenue.toFixed(2)}</span>
+            <span className="text-sm font-bold text-emerald-700">Total Diterima: {formatRupiah(totalRevenue)}</span>
           </div>
         </div>
       </div>

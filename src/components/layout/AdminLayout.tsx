@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router';
 import type { ReactElement } from 'react';
 import {
   LayoutDashboard, Building2, Users, Tag, BarChart3,
-  Package, DollarSign, Star, Percent, Settings, LogOut,
+  Package, Banknote, Star, Percent, Settings, LogOut,
   Bell, ChevronDown, Waves, Menu, X, AlertCircle, ShoppingBag, CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -18,32 +18,32 @@ interface NavItem {
 
 const navSections: { label: string; items: NavItem[] }[] = [
   {
-    label: 'Overview',
+    label: 'Ringkasan',
     items: [
-      { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { to: '/admin', label: 'Dasbor', icon: LayoutDashboard, exact: true },
     ],
   },
   {
-    label: 'Management',
+    label: 'Manajemen',
     items: [
-      { to: '/admin/branches', label: 'Branches', icon: Building2 },
-      { to: '/admin/employees', label: 'Employees', icon: Users },
-      { to: '/admin/services', label: 'Services', icon: Tag },
+      { to: '/admin/branches', label: 'Cabang', icon: Building2 },
+      { to: '/admin/employees', label: 'Karyawan', icon: Users },
+      { to: '/admin/services', label: 'Layanan', icon: Tag },
     ],
   },
   {
-    label: 'Finance',
+    label: 'Keuangan',
     items: [
-      { to: '/admin/reports', label: 'Financial Reports', icon: BarChart3 },
-      { to: '/admin/commissions', label: 'Commissions', icon: DollarSign },
+      { to: '/admin/reports', label: 'Laporan Keuangan', icon: BarChart3 },
+      { to: '/admin/commissions', label: 'Komisi', icon: Banknote },
     ],
   },
   {
-    label: 'Operations',
+    label: 'Operasional',
     items: [
-      { to: '/admin/inventory', label: 'Inventory', icon: Package },
-      { to: '/admin/membership', label: 'Membership', icon: Star },
-      { to: '/admin/promotions', label: 'Promotions', icon: Percent },
+      { to: '/admin/inventory', label: 'Inventaris', icon: Package },
+      { to: '/admin/membership', label: 'Keanggotaan', icon: Star },
+      { to: '/admin/promotions', label: 'Promo', icon: Percent },
     ],
   },
 ];
@@ -81,7 +81,7 @@ export default function AdminLayout() {
           {sidebarOpen && (
             <div>
               <p className="text-white font-semibold text-sm leading-none">WashFlow</p>
-              <p className="text-slate-400 text-xs mt-0.5">Admin Portal</p>
+              <p className="text-slate-400 text-xs mt-0.5">Portal Admin</p>
             </div>
           )}
         </div>
@@ -133,14 +133,14 @@ export default function AdminLayout() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white text-xs font-medium truncate">{currentUser?.name || 'Admin'}</p>
-                <p className="text-slate-400 text-xs truncate">{currentUser?.email || 'admin@cleanwave.app'}</p>
+                <p className="text-slate-400 text-xs truncate">{currentUser?.email || 'admin@washflow.example.com'}</p>
               </div>
-              <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition-colors">
+              <button onClick={handleLogout} aria-label="Keluar" title="Keluar" className="text-slate-400 hover:text-red-400 transition-colors">
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <button onClick={handleLogout} className="flex items-center justify-center w-full text-slate-400 hover:text-red-400 p-1">
+            <button onClick={handleLogout} aria-label="Keluar" title="Keluar" className="flex items-center justify-center w-full text-slate-400 hover:text-red-400 p-1">
               <LogOut className="h-4 w-4" />
             </button>
           )}
@@ -154,6 +154,7 @@ export default function AdminLayout() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? 'Tutup menu samping' : 'Buka menu samping'}
               className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -168,6 +169,7 @@ export default function AdminLayout() {
             <div className="relative">
               <button
                 onClick={() => { setShowNotif(!showNotif); setShowProfile(false); }}
+                aria-label="Notifikasi"
                 className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
               >
                 <Bell className="h-5 w-5" />
@@ -181,8 +183,8 @@ export default function AdminLayout() {
               {showNotif && (
                 <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-slate-900">Notifications</p>
-                    <span className="text-xs text-blue-600 cursor-pointer font-medium">Mark all read</span>
+                    <p className="text-sm font-semibold text-slate-900">Notifikasi</p>
+                    <span className="text-xs text-blue-600 cursor-pointer font-medium">Tandai semua dibaca</span>
                   </div>
                   <div className="divide-y divide-slate-50">
                     {notifications.map(n => (
@@ -211,7 +213,7 @@ export default function AdminLayout() {
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-xs font-semibold text-slate-800">{currentUser?.name || 'Admin User'}</p>
-                  <p className="text-xs text-slate-400">Business Owner</p>
+                  <p className="text-xs text-slate-400">Pemilik Usaha</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
@@ -224,13 +226,13 @@ export default function AdminLayout() {
                   </div>
                   <div className="py-1">
                     <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                      <Settings className="h-4 w-4" /> Settings
+                      <Settings className="h-4 w-4" /> Pengaturan
                     </button>
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4" /> Sign out
+                      <LogOut className="h-4 w-4" /> Keluar
                     </button>
                   </div>
                 </div>

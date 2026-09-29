@@ -1,16 +1,22 @@
 import { useState } from 'react';
-import { Plus, Search, Edit, Tag, Clock, DollarSign, ToggleLeft, ToggleRight, TrendingUp } from 'lucide-react';
+import { Plus, Search, Edit, Tag, Clock, Banknote, ToggleLeft, ToggleRight, TrendingUp } from 'lucide-react';
 import { services as initialServices } from '@/data/mockData';
+import { formatRupiah, formatRupiahRingkas, formatAngka } from '@/lib/format';
 import { Modal } from '@/components/shared/Modal';
 import { FormField, inputClass, selectClass } from '@/components/shared/FormField';
 
 type Service = typeof initialServices[0];
 
 const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
-  Regular:   { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-200' },
+  Reguler:   { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-200' },
   Premium:   { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
   Express:   { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
-  Specialty: { bg: 'bg-teal-100',   text: 'text-teal-700',   border: 'border-teal-200' },
+  Khusus:    { bg: 'bg-teal-100',   text: 'text-teal-700',   border: 'border-teal-200' },
+};
+
+const warnaLabel: Record<string, string> = {
+  blue: 'Biru', purple: 'Ungu', orange: 'Oranye', green: 'Hijau',
+  teal: 'Tosca', amber: 'Kuning', red: 'Merah', indigo: 'Indigo',
 };
 
 const serviceIconBg: Record<string, string> = {
@@ -26,7 +32,7 @@ export default function ServiceManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editService, setEditService] = useState<Service | null>(null);
   const [form, setForm] = useState({
-    name: '', category: 'Regular', price: '', priceUnit: 'per kg',
+    name: '', category: 'Reguler', price: '', priceUnit: 'per kg',
     estimatedTime: '', color: 'blue', description: '', isActive: true,
   });
 
@@ -38,7 +44,7 @@ export default function ServiceManagement() {
 
   const openAdd = () => {
     setEditService(null);
-    setForm({ name: '', category: 'Regular', price: '', priceUnit: 'per kg', estimatedTime: '', color: 'blue', description: '', isActive: true });
+    setForm({ name: '', category: 'Reguler', price: '', priceUnit: 'per kg', estimatedTime: '', color: 'blue', description: '', isActive: true });
     setShowModal(true);
   };
 
@@ -69,21 +75,21 @@ export default function ServiceManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Service Management</h1>
-          <p className="text-slate-500 text-sm mt-1">Configure laundry services, pricing, and turnaround times</p>
+          <h1 className="text-slate-900">Manajemen Layanan</h1>
+          <p className="text-slate-500 text-sm mt-1">Atur layanan laundry, harga, dan lama pengerjaan</p>
         </div>
         <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
-          <Plus className="h-4 w-4" /> Add Service
+          <Plus className="h-4 w-4" /> Tambah Layanan
         </button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Services', value: services.length, sub: `${services.filter(s => s.isActive).length} active` },
-          { label: 'Categories', value: categories.length, sub: 'Service types' },
-          { label: 'Monthly Orders', value: services.reduce((s, sv) => s + sv.ordersThisMonth, 0), sub: 'All services' },
-          { label: 'Est. Monthly Revenue', value: `$${(totalRevenue/1000).toFixed(1)}k`, sub: 'Active services' },
+          { label: 'Total Layanan', value: services.length, sub: `${services.filter(s => s.isActive).length} aktif` },
+          { label: 'Kategori', value: categories.length, sub: 'Jenis layanan' },
+          { label: 'Pesanan Bulanan', value: services.reduce((s, sv) => s + sv.ordersThisMonth, 0), sub: 'Semua layanan' },
+          { label: 'Estimasi Pendapatan Bulanan', value: formatRupiahRingkas(totalRevenue), sub: 'Layanan aktif' },
         ].map(c => (
           <div key={c.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <p className="text-xs text-slate-400">{c.label}</p>
@@ -97,7 +103,7 @@ export default function ServiceManagement() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input placeholder="Search services..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" />
+          <input placeholder="Cari layanan..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" />
         </div>
         <div className="flex items-center gap-2">
           {['', ...categories].map(cat => (
@@ -108,7 +114,7 @@ export default function ServiceManagement() {
                 filterCat === cat ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {cat || 'All'}
+              {cat || 'Semua'}
             </button>
           ))}
         </div>
@@ -132,7 +138,7 @@ export default function ServiceManagement() {
                       <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${catStyle.bg} ${catStyle.text}`}>{svc.category}</span>
                     </div>
                   </div>
-                  <button onClick={() => toggleActive(svc.id)} className="mt-1">
+                  <button onClick={() => toggleActive(svc.id)} className="mt-1" title={svc.isActive ? 'Nonaktifkan layanan' : 'Aktifkan layanan'} aria-label={svc.isActive ? 'Nonaktifkan layanan' : 'Aktifkan layanan'}>
                     {svc.isActive
                       ? <ToggleRight className="h-6 w-6 text-emerald-500" />
                       : <ToggleLeft className="h-6 w-6 text-slate-300" />
@@ -144,16 +150,16 @@ export default function ServiceManagement() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50">
-                    <DollarSign className="h-4 w-4 text-blue-500" />
+                    <Banknote className="h-4 w-4 text-blue-500" />
                     <div>
-                      <p className="text-xs text-slate-400">Price</p>
-                      <p className="text-sm font-semibold text-slate-900">${svc.price.toFixed(2)} <span className="text-xs font-normal text-slate-400">{svc.priceUnit}</span></p>
+                      <p className="text-xs text-slate-400">Harga</p>
+                      <p className="text-sm font-semibold text-slate-900">{formatRupiah(svc.price)} <span className="text-xs font-normal text-slate-400">{svc.priceUnit}</span></p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50">
                     <Clock className="h-4 w-4 text-amber-500" />
                     <div>
-                      <p className="text-xs text-slate-400">Turnaround</p>
+                      <p className="text-xs text-slate-400">Lama Pengerjaan</p>
                       <p className="text-sm font-semibold text-slate-900">{svc.estimatedTime}</p>
                     </div>
                   </div>
@@ -162,15 +168,15 @@ export default function ServiceManagement() {
                 {svc.isActive && (
                   <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
                     <TrendingUp className="h-4 w-4 text-emerald-600" />
-                    <p className="text-xs text-emerald-700 font-medium">{svc.ordersThisMonth} orders this month</p>
-                    <span className="ml-auto text-xs text-emerald-600 font-semibold">${(svc.price * svc.ordersThisMonth).toLocaleString()}</span>
+                    <p className="text-xs text-emerald-700 font-medium">{formatAngka(svc.ordersThisMonth)} pesanan bulan ini</p>
+                    <span className="ml-auto text-xs text-emerald-600 font-semibold">{formatRupiah(svc.price * svc.ordersThisMonth)}</span>
                   </div>
                 )}
               </div>
 
               <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-100 bg-slate-50 rounded-b-xl">
                 <button onClick={() => openEdit(svc)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-600 hover:bg-white border border-slate-200 transition-colors">
-                  <Edit className="h-3.5 w-3.5" /> Edit Pricing
+                  <Edit className="h-3.5 w-3.5" /> Ubah Harga
                 </button>
               </div>
             </div>
@@ -182,60 +188,60 @@ export default function ServiceManagement() {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editService ? 'Edit Service' : 'Add New Service'}
+        title={editService ? 'Ubah Layanan' : 'Tambah Layanan Baru'}
         size="md"
         footer={
           <div className="flex items-center justify-end gap-3">
-            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">{editService ? 'Save Changes' : 'Add Service'}</button>
+            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
+            <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">{editService ? 'Simpan Perubahan' : 'Tambah Layanan'}</button>
           </div>
         }
       >
         <div className="space-y-4">
-          <FormField label="Service Name" required>
-            <input className={inputClass} value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Premium Wash & Press" />
+          <FormField label="Nama Layanan" required>
+            <input className={inputClass} value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="mis. Cuci Setrika Premium" />
           </FormField>
-          <FormField label="Description">
-            <textarea className={inputClass} rows={2} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Brief description of the service" />
+          <FormField label="Deskripsi">
+            <textarea className={inputClass} rows={2} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Deskripsi singkat layanan" />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Category" required>
+            <FormField label="Kategori" required>
               <select className={selectClass} value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                <option>Regular</option>
+                <option>Reguler</option>
                 <option>Premium</option>
                 <option>Express</option>
-                <option>Specialty</option>
+                <option>Khusus</option>
               </select>
             </FormField>
-            <FormField label="Color Theme">
+            <FormField label="Warna">
               <select className={selectClass} value={form.color} onChange={e => setForm({...form, color: e.target.value})}>
-                {['blue', 'purple', 'orange', 'green', 'teal', 'amber', 'red', 'indigo'].map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                {['blue', 'purple', 'orange', 'green', 'teal', 'amber', 'red', 'indigo'].map(c => <option key={c} value={c}>{warnaLabel[c]}</option>)}
               </select>
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Price" required>
-              <input type="number" step="0.01" className={inputClass} value={form.price} onChange={e => setForm({...form, price: e.target.value})} placeholder="0.00" />
+            <FormField label="Harga (Rp)" required>
+              <input type="number" step="500" className={inputClass} value={form.price} onChange={e => setForm({...form, price: e.target.value})} placeholder="7000" />
             </FormField>
-            <FormField label="Price Unit">
+            <FormField label="Satuan Harga">
               <select className={selectClass} value={form.priceUnit} onChange={e => setForm({...form, priceUnit: e.target.value})}>
                 <option value="per kg">per kg</option>
-                <option value="per piece">per piece</option>
-                <option value="per pair">per pair</option>
+                <option value="per pcs">per pcs</option>
+                <option value="per pasang">per pasang</option>
                 <option value="per set">per set</option>
               </select>
             </FormField>
           </div>
-          <FormField label="Estimated Turnaround">
-            <input className={inputClass} value={form.estimatedTime} onChange={e => setForm({...form, estimatedTime: e.target.value})} placeholder="e.g. 24 hours" />
+          <FormField label="Estimasi Pengerjaan">
+            <input className={inputClass} value={form.estimatedTime} onChange={e => setForm({...form, estimatedTime: e.target.value})} placeholder="mis. 24 jam" />
           </FormField>
           <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
             <button onClick={() => setForm({...form, isActive: !form.isActive})}>
               {form.isActive ? <ToggleRight className="h-6 w-6 text-emerald-500" /> : <ToggleLeft className="h-6 w-6 text-slate-300" />}
             </button>
             <div>
-              <p className="text-sm font-medium text-slate-700">Service Active</p>
-              <p className="text-xs text-slate-400">{form.isActive ? 'Visible and available to staff' : 'Hidden from staff interface'}</p>
+              <p className="text-sm font-medium text-slate-700">Layanan Aktif</p>
+              <p className="text-xs text-slate-400">{form.isActive ? 'Tampil dan bisa dipilih staf' : 'Disembunyikan dari tampilan staf'}</p>
             </div>
           </div>
         </div>

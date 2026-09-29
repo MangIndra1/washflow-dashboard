@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { revenueData, branchPerformance, serviceBreakdown, orders, branches } from '@/data/mockData';
+import { revenueData, branchPerformance, serviceBreakdown, orders, branches, inventory } from '@/data/mockData';
+import { formatRupiah, formatRupiahRingkas, formatAngka, formatTanggal } from '@/lib/format';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { DollarSign, ShoppingBag, Building2, TrendingUp, AlertCircle, Clock, ArrowRight } from 'lucide-react';
+import { Banknote, ShoppingBag, Building2, TrendingUp, AlertCircle, Clock, ArrowRight } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
@@ -19,21 +20,25 @@ export default function AdminDashboard() {
 
   const recentOrders = orders.slice(0, 6);
   const overdueOrders = orders.filter(o => o.status !== 'completed' && o.dueDate < '2026-02-28');
+  const lowStockCount = inventory.filter(i => i.currentStock < i.minStock).length;
+  const maintenanceBranches = branches.filter(b => b.status === 'maintenance');
+  const todayRevenue = revenueData.weekly[revenueData.weekly.length - 1];
+  const thisMonth = revenueData.monthly[revenueData.monthly.length - 1];
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Business Overview</h1>
-          <p className="text-slate-500 text-sm mt-1">Friday, February 27, 2026 — All Branches</p>
+          <h1 className="text-slate-900">Ringkasan Bisnis</h1>
+          <p className="text-slate-500 text-sm mt-1">Jumat, 27 Februari 2026. Semua cabang</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
-            <Clock className="h-4 w-4" /> Last 30 days
+            <Clock className="h-4 w-4" /> 30 hari terakhir
           </button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
-            Export Report
+            Ekspor Laporan
           </button>
         </div>
       </div>
@@ -41,42 +46,42 @@ export default function AdminDashboard() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
-          title="Today's Revenue"
-          value="$1,750"
-          subtitle="52 orders completed"
+          title="Pendapatan Hari Ini"
+          value={formatRupiah(todayRevenue.revenue)}
+          subtitle={`${todayRevenue.orders} pesanan selesai`}
           change={12.3}
-          changeLabel="vs yesterday"
-          icon={DollarSign}
+          changeLabel="dibanding kemarin"
+          icon={Banknote}
           iconBg="bg-blue-100"
           iconColor="text-blue-600"
           accent="bg-blue-500"
         />
         <MetricCard
-          title="Monthly Revenue"
-          value="$41,800"
-          subtitle="1,240 total orders"
+          title="Pendapatan Bulan Ini"
+          value={formatRupiah(thisMonth.revenue)}
+          subtitle={`${formatAngka(thisMonth.orders)} total pesanan`}
           change={18.7}
-          changeLabel="vs last month"
+          changeLabel="dibanding bulan lalu"
           icon={TrendingUp}
           iconBg="bg-emerald-100"
           iconColor="text-emerald-600"
           accent="bg-emerald-500"
         />
         <MetricCard
-          title="Active Orders"
+          title="Pesanan Aktif"
           value="18"
-          subtitle="Across all branches"
+          subtitle="Di semua cabang"
           change={-5.2}
-          changeLabel="vs yesterday"
+          changeLabel="dibanding kemarin"
           icon={ShoppingBag}
           iconBg="bg-amber-100"
           iconColor="text-amber-600"
           accent="bg-amber-500"
         />
         <MetricCard
-          title="Active Branches"
+          title="Cabang Aktif"
           value={`${branches.filter(b => b.status === 'active').length} / ${branches.length}`}
-          subtitle={`${branches.filter(b => b.status !== 'active').length} under maintenance`}
+          subtitle={`${branches.filter(b => b.status !== 'active').length} sedang dalam perbaikan`}
           icon={Building2}
           iconBg="bg-purple-100"
           iconColor="text-purple-600"
@@ -86,23 +91,23 @@ export default function AdminDashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Revenue Trend */}
+        {/* Tren Pendapatan */}
         <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-slate-900">Revenue Trend</h3>
-              <p className="text-slate-400 text-xs mt-0.5">Total revenue over selected period</p>
+              <h3 className="text-slate-900">Tren Pendapatan</h3>
+              <p className="text-slate-400 text-xs mt-0.5">Total pendapatan pada periode terpilih</p>
             </div>
             <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
               {(['weekly', 'monthly'] as Period[]).map(p => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 font-medium capitalize transition-colors ${
+                  className={`px-3 py-1.5 font-medium transition-colors ${
                     period === p ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'
                   }`}
                 >
-                  {p === 'weekly' ? '7 Days' : '6 Months'}
+                  {p === 'weekly' ? '7 Hari' : '6 Bulan'}
                 </button>
               ))}
             </div>
@@ -117,23 +122,23 @@ export default function AdminDashboard() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatRupiahRingkas(v)} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }}
                 labelStyle={{ color: '#94A3B8', fontSize: 11 }}
                 itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
-                formatter={(v: number) => [`$${v.toLocaleString()}`, 'Revenue']}
+                formatter={(v: number) => [formatRupiah(v), 'Pendapatan']}
               />
               <Area type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} fill="url(#revenueGradient)" dot={false} activeDot={{ r: 5, fill: '#3B82F6' }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Service Breakdown */}
+        {/* Rincian Layanan */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="mb-4">
-            <h3 className="text-slate-900">Service Breakdown</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Orders by type this month</p>
+            <h3 className="text-slate-900">Rincian Layanan</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Pesanan per jenis bulan ini</p>
           </div>
           <ResponsiveContainer width="100%" height={160}>
             <PieChart>
@@ -159,26 +164,26 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Branch Performance + Alerts Row */}
+      {/* Kinerja Cabang + Alerts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Branch Performance */}
+        {/* Kinerja Cabang */}
         <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-slate-900">Branch Performance</h3>
-              <p className="text-slate-400 text-xs mt-0.5">Monthly revenue comparison</p>
+              <h3 className="text-slate-900">Kinerja Cabang</h3>
+              <p className="text-slate-400 text-xs mt-0.5">Perbandingan pendapatan bulanan</p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={branchPerformance} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="branch" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatRupiahRingkas(v)} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }}
                 labelStyle={{ color: '#94A3B8', fontSize: 11 }}
                 itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
-                formatter={(v: number) => [`$${v.toLocaleString()}`, 'Revenue']}
+                formatter={(v: number) => [formatRupiah(v), 'Pendapatan']}
               />
               <Bar dataKey="revenue" fill="#3B82F6" radius={[6, 6, 0, 0]} />
             </BarChart>
@@ -188,8 +193,8 @@ export default function AdminDashboard() {
             {branchPerformance.map(b => (
               <div key={b.branch} className="text-center">
                 <p className="text-xs text-slate-400">{b.branch}</p>
-                <p className="text-sm font-semibold text-slate-800 mt-0.5">${(b.revenue/1000).toFixed(1)}k</p>
-                <p className="text-xs text-slate-400">{b.orders} orders</p>
+                <p className="text-sm font-semibold text-slate-800 mt-0.5">{formatRupiahRingkas(b.revenue)}</p>
+                <p className="text-xs text-slate-400">{b.orders} pesanan</p>
               </div>
             ))}
           </div>
@@ -199,7 +204,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="h-4 w-4 text-red-500" />
-            <h3 className="text-slate-900">Active Alerts</h3>
+            <h3 className="text-slate-900">Peringatan Aktif</h3>
           </div>
           <div className="space-y-3">
             {overdueOrders.length > 0 && overdueOrders.slice(0, 3).map(o => (
@@ -208,9 +213,9 @@ export default function AdminDashboard() {
                   <Clock className="h-3.5 w-3.5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-red-800">{o.id} — Overdue</p>
-                  <p className="text-xs text-red-600 mt-0.5">{o.customerName} · {o.serviceName}</p>
-                  <p className="text-xs text-red-400 mt-0.5">Due: {o.dueDate}</p>
+                  <p className="text-xs font-medium text-red-800">{o.id}: Terlambat</p>
+                  <p className="text-xs text-red-600 mt-0.5">{o.customerName}, {o.serviceName}</p>
+                  <p className="text-xs text-red-400 mt-0.5">Jatuh tempo: {formatTanggal(o.dueDate)}</p>
                 </div>
               </div>
             ))}
@@ -220,42 +225,42 @@ export default function AdminDashboard() {
                   <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-amber-800">Low Stock Warning</p>
-                  <p className="text-xs text-amber-600 mt-0.5">2 inventory items below minimum level</p>
+                  <p className="text-xs font-medium text-amber-800">Stok Menipis</p>
+                  <p className="text-xs text-amber-600 mt-0.5">{lowStockCount} barang inventaris di bawah stok minimum</p>
                 </div>
               </div>
             </div>
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
+            {maintenanceBranches.length > 0 && <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
               <div className="flex items-start gap-3">
                 <div className="h-7 w-7 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Building2 className="h-3.5 w-3.5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-amber-800">Airport Branch</p>
-                  <p className="text-xs text-amber-600 mt-0.5">Under maintenance — reduced capacity</p>
+                  <p className="text-xs font-medium text-amber-800">{maintenanceBranches[0]?.name}</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Sedang dalam perbaikan, kapasitas berkurang</p>
                 </div>
               </div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
 
-      {/* Recent Orders */}
+      {/* Pesanan Terbaru */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div>
-            <h3 className="text-slate-900">Recent Orders</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Latest transactions across all branches</p>
+            <h3 className="text-slate-900">Pesanan Terbaru</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Transaksi terbaru di semua cabang</p>
           </div>
           <button className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium">
-            View all <ArrowRight className="h-4 w-4" />
+            Lihat semua <ArrowRight className="h-4 w-4" />
           </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100">
-                {['Order ID', 'Customer', 'Service', 'Branch', 'Amount', 'Payment', 'Status'].map(h => (
+                {['ID Pesanan', 'Pelanggan', 'Layanan', 'Cabang', 'Jumlah', 'Pembayaran', 'Status'].map(h => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -276,7 +281,7 @@ export default function AdminDashboard() {
                   <td className="px-6 py-4">
                     <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{order.branch}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-900">${order.total.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{formatRupiah(order.total)}</td>
                   <td className="px-6 py-4"><StatusBadge status={order.paymentStatus} size="sm" /></td>
                   <td className="px-6 py-4"><StatusBadge status={order.status} size="sm" /></td>
                 </tr>

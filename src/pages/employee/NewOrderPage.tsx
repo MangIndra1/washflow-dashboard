@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Printer, CheckCircle, RotateCcw, QrCode, MessageSquare, Search, Plus } from 'lucide-react';
-import { services, customers } from '@/data/mockData';
+import { services, customers, promotions } from '@/data/mockData';
+import { formatRupiah, formatTanggal } from '@/lib/format';
 import { useAuth } from '@/features/auth/AuthContext';
 
 const generateOrderId = () => {
@@ -13,6 +14,8 @@ const addDays = (days: number) => {
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
 };
+
+const PAYMENT_LABELS: Record<string, string> = { paid: 'Lunas', unpaid: 'Belum Bayar', partial: 'Sebagian' };
 
 type Step = 'form' | 'receipt';
 
@@ -36,6 +39,7 @@ export default function NewOrderPage() {
 
   const selectedService = services.find(s => s.id === form.serviceId);
   const priceUnit = selectedService?.priceUnit || 'per kg';
+  const unitLabel = priceUnit.replace('per ', '');
   const isWeightBased = priceUnit === 'per kg';
 
   const subtotal = selectedService
@@ -44,7 +48,11 @@ export default function NewOrderPage() {
       : parseInt(form.quantity || '0') * selectedService.price
     : 0;
 
-  const discount = form.promoCode === 'MEMBER10' ? subtotal * 0.10 : form.promoCode === 'FIRST20' ? subtotal * 0.20 : 0;
+  const promo = promotions.find(p => p.code === form.promoCode && p.status === 'active');
+  const promoValid = !!promo && subtotal > 0 && subtotal >= promo.minOrder;
+  const discount = promo && promoValid
+    ? Math.min(subtotal, promo.type === 'percentage' ? Math.round(subtotal * promo.value / 100) : promo.value)
+    : 0;
   const total = subtotal - discount;
 
   const dueDate = selectedService
@@ -75,7 +83,7 @@ export default function NewOrderPage() {
             <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center mx-auto mb-3">
               <CheckCircle className="h-7 w-7 text-white" />
             </div>
-            <p className="text-white font-bold text-lg">Order Confirmed!</p>
+            <p className="text-white font-bold text-lg">Pesanan Berhasil Dibuat</p>
             <p className="text-slate-400 text-sm mt-1">{currentUser?.branchName}</p>
           </div>
 
@@ -83,7 +91,7 @@ export default function NewOrderPage() {
             {/* Order ID + QR */}
             <div className="flex items-center justify-between mb-5 p-4 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300">
               <div>
-                <p className="text-xs text-slate-400 mb-1">Order Number</p>
+                <p className="text-xs text-slate-400 mb-1">Nomor Pesanan</p>
                 <p className="text-2xl font-bold text-slate-900 font-mono">{orderId}</p>
               </div>
               <div className="h-16 w-16 bg-slate-200 rounded-lg flex items-center justify-center">
@@ -94,14 +102,14 @@ export default function NewOrderPage() {
             {/* Details */}
             <div className="space-y-3 mb-5">
               {[
-                { label: 'Customer', value: form.customerName },
-                { label: 'Phone', value: form.phone },
-                { label: 'Service', value: selectedService?.name || '' },
-                { label: isWeightBased ? 'Weight' : 'Quantity', value: isWeightBased ? `${form.weight} kg` : `${form.quantity} pcs` },
-                { label: 'Branch', value: currentUser?.branchName || '' },
-                { label: 'Received', value: '2026-02-27' },
-                { label: 'Due Date', value: dueDate },
-                { label: 'Payment', value: form.paymentStatus.charAt(0).toUpperCase() + form.paymentStatus.slice(1) },
+                { label: 'Pelanggan', value: form.customerName },
+                { label: 'Telepon', value: form.phone },
+                { label: 'Layanan', value: selectedService?.name || '' },
+                { label: isWeightBased ? 'Berat' : 'Jumlah', value: isWeightBased ? `${form.weight} kg` : `${form.quantity} ${unitLabel}` },
+                { label: 'Cabang', value: currentUser?.branchName || '' },
+                { label: 'Diterima', value: formatTanggal('2026-02-27') },
+                { label: 'Estimasi Selesai', value: formatTanggal(dueDate) },
+                { label: 'Pembayaran', value: PAYMENT_LABELS[form.paymentStatus] },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                   <span className="text-sm text-slate-500">{row.label}</span>
@@ -115,24 +123,24 @@ export default function NewOrderPage() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatRupiah(subtotal)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-emerald-600">Promo ({form.promoCode})</span>
-                    <span className="text-emerald-600">-${discount.toFixed(2)}</span>
+                    <span className="text-emerald-600">-{formatRupiah(discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-emerald-200">
                   <span className="font-bold text-slate-900">Total</span>
-                  <span className="font-bold text-emerald-700 text-lg">${total.toFixed(2)}</span>
+                  <span className="font-bold text-emerald-700 text-lg">{formatRupiah(total)}</span>
                 </div>
               </div>
             </div>
 
             {form.notes && (
               <div className="mb-5 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <p className="text-xs font-semibold text-amber-700 mb-1">Special Notes</p>
+                <p className="text-xs font-semibold text-amber-700 mb-1">Catatan Khusus</p>
                 <p className="text-sm text-amber-800">{form.notes}</p>
               </div>
             )}
@@ -141,19 +149,19 @@ export default function NewOrderPage() {
             <div className="mb-5 p-3 rounded-lg border border-emerald-200 bg-emerald-50 flex items-start gap-3">
               <MessageSquare className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-xs font-semibold text-emerald-800">WhatsApp Notification</p>
-                <p className="text-xs text-emerald-600 mt-0.5">Order confirmation sent to {form.phone}</p>
+                <p className="text-xs font-semibold text-emerald-800">Notifikasi WhatsApp</p>
+                <p className="text-xs text-emerald-600 mt-0.5">Konfirmasi pesanan dikirim ke {form.phone}</p>
               </div>
-              <button className="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-lg hover:bg-emerald-700 transition-colors">Send</button>
+              <button className="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-lg hover:bg-emerald-700 transition-colors">Kirim</button>
             </div>
 
             {/* Actions */}
             <div className="flex gap-3">
               <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors">
-                <Printer className="h-4 w-4" /> Print Receipt
+                <Printer className="h-4 w-4" /> Cetak Struk
               </button>
               <button onClick={handleNewOrder} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors">
-                <RotateCcw className="h-4 w-4" /> New Order
+                <RotateCcw className="h-4 w-4" /> Pesanan Baru
               </button>
             </div>
           </div>
@@ -165,20 +173,20 @@ export default function NewOrderPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-slate-900">New Order</h1>
-        <p className="text-slate-500 text-sm mt-1">Fast order intake for {currentUser?.branchName}</p>
+        <h1 className="text-slate-900">Pesanan Baru</h1>
+        <p className="text-slate-500 text-sm mt-1">Input pesanan untuk cabang {currentUser?.branchName}</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         {/* Order ID Banner */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 rounded-t-2xl">
           <div>
-            <p className="text-xs text-slate-400">Auto-generated Order ID</p>
+            <p className="text-xs text-slate-400">Nomor pesanan otomatis</p>
             <p className="text-base font-bold text-slate-900 font-mono">{orderId}</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <QrCode className="h-4 w-4" />
-            <span>QR will be generated on save</span>
+            <span>Kode QR dibuat setelah disimpan</span>
           </div>
         </div>
 
@@ -186,13 +194,13 @@ export default function NewOrderPage() {
           {/* Customer Search */}
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1.5">
-              Customer Name <span className="text-red-500">*</span>
+              Nama Pelanggan <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="Search existing customer or type new name..."
+                placeholder="Cari pelanggan atau ketik nama baru"
                 value={form.customerName || customerSearch}
                 onChange={e => {
                   const v = e.target.value;
@@ -219,7 +227,7 @@ export default function NewOrderPage() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-slate-900">{c.name}</p>
-                        <p className="text-xs text-slate-400">{c.phone} · {c.membershipTier} member · {c.totalOrders} orders</p>
+                        <p className="text-xs text-slate-400">{c.phone}, Member {c.membershipTier}, {c.totalOrders} pesanan</p>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.membershipTier === 'Platinum' ? 'bg-blue-100 text-blue-700' : c.membershipTier === 'Gold' ? 'bg-yellow-100 text-yellow-800' : c.membershipTier === 'Silver' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-700'}`}>
                         {c.membershipTier}
@@ -234,11 +242,11 @@ export default function NewOrderPage() {
           {/* Phone */}
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1.5">
-              Phone Number <span className="text-red-500">*</span>
+              Nomor Telepon <span className="text-red-500">*</span>
             </label>
             <input
               className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              placeholder="e.g. 555-0100"
+              placeholder="Contoh: 0812-3456-7890"
               value={form.phone}
               onChange={e => setForm({...form, phone: e.target.value})}
             />
@@ -247,7 +255,7 @@ export default function NewOrderPage() {
           {/* Service */}
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1.5">
-              Service <span className="text-red-500">*</span>
+              Layanan <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {services.filter(s => s.isActive).map(svc => (
@@ -257,7 +265,7 @@ export default function NewOrderPage() {
                   className={`p-3 rounded-xl border-2 text-left transition-all ${form.serviceId === svc.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                 >
                   <p className="text-xs font-semibold text-slate-800 leading-snug">{svc.name}</p>
-                  <p className="text-xs text-slate-400 mt-1">${svc.price} {svc.priceUnit}</p>
+                  <p className="text-xs text-slate-400 mt-1">{formatRupiah(svc.price)} {svc.priceUnit}</p>
                   <p className="text-xs text-slate-400">{svc.estimatedTime}</p>
                 </button>
               ))}
@@ -269,22 +277,22 @@ export default function NewOrderPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1.5">
-                  {isWeightBased ? 'Weight (kg)' : 'Quantity (pieces/sets)'} <span className="text-red-500">*</span>
+                  {isWeightBased ? 'Berat (kg)' : `Jumlah (${unitLabel})`} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   step={isWeightBased ? '0.1' : '1'}
                   min="0"
                   className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder={isWeightBased ? 'e.g. 5.5' : 'e.g. 8'}
+                  placeholder={isWeightBased ? 'Contoh: 5,5' : 'Contoh: 8'}
                   value={isWeightBased ? form.weight : form.quantity}
                   onChange={e => setForm({...form, [isWeightBased ? 'weight' : 'quantity']: e.target.value})}
                 />
               </div>
               <div className="flex flex-col justify-end">
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                  <p className="text-xs text-emerald-600">Estimated Due</p>
-                  <p className="text-sm font-bold text-emerald-800">{dueDate}</p>
+                  <p className="text-xs text-emerald-600">Estimasi Selesai</p>
+                  <p className="text-sm font-bold text-emerald-800">{formatTanggal(dueDate)}</p>
                 </div>
               </div>
             </div>
@@ -292,13 +300,13 @@ export default function NewOrderPage() {
 
           {/* Payment Status */}
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1.5">Payment Status</label>
+            <label className="text-sm font-medium text-slate-700 block mb-1.5">Status Pembayaran</label>
             <div className="flex gap-3">
               {['paid', 'unpaid', 'partial'].map(status => (
                 <button
                   key={status}
                   onClick={() => setForm({...form, paymentStatus: status})}
-                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium capitalize transition-all ${
+                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-all ${
                     form.paymentStatus === status
                       ? status === 'paid' ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                         : status === 'unpaid' ? 'border-red-400 bg-red-50 text-red-700'
@@ -306,7 +314,7 @@ export default function NewOrderPage() {
                       : 'border-slate-200 text-slate-500 hover:border-slate-300'
                   }`}
                 >
-                  {status}
+                  {PAYMENT_LABELS[status]}
                 </button>
               ))}
             </div>
@@ -314,18 +322,18 @@ export default function NewOrderPage() {
 
           {/* Promo Code */}
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1.5">Promo Code (Optional)</label>
+            <label className="text-sm font-medium text-slate-700 block mb-1.5">Kode Promo (Opsional)</label>
             <div className="flex gap-2">
               <input
                 className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
-                placeholder="e.g. MEMBER10"
+                placeholder="Contoh: HEMAT10K"
                 value={form.promoCode}
                 onChange={e => setForm({...form, promoCode: e.target.value.toUpperCase()})}
               />
               {discount > 0 && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
                   <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm text-emerald-700 font-medium">-${discount.toFixed(2)}</span>
+                  <span className="text-sm text-emerald-700 font-medium">-{formatRupiah(discount)}</span>
                 </div>
               )}
             </div>
@@ -333,34 +341,34 @@ export default function NewOrderPage() {
 
           {/* Notes */}
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1.5">Special Notes</label>
+            <label className="text-sm font-medium text-slate-700 block mb-1.5">Catatan Khusus</label>
             <textarea
               rows={2}
               className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-              placeholder="e.g. Handle with care, delicate fabric, customer needs by 3pm..."
+              placeholder="Contoh: bahan halus, harap hati-hati, dibutuhkan sebelum jam 3 sore"
               value={form.notes}
               onChange={e => setForm({...form, notes: e.target.value})}
             />
           </div>
 
-          {/* Order Summary */}
+          {/* Ringkasan Pesanan */}
           {selectedService && (isWeightBased ? form.weight : form.quantity) && (
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Order Summary</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Ringkasan Pesanan</p>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">{selectedService.name} × {isWeightBased ? form.weight + 'kg' : form.quantity + ' pcs'}</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="text-slate-600">{selectedService.name} x {isWeightBased ? form.weight + ' kg' : form.quantity + ' ' + unitLabel}</span>
+                  <span className="font-medium">{formatRupiah(subtotal)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-emerald-600">
-                    <span>Promo discount</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span>Diskon promo</span>
+                    <span>-{formatRupiah(discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-slate-200">
                   <span className="font-bold text-slate-900">Total</span>
-                  <span className="font-bold text-slate-900 text-lg">${total.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900 text-lg">{formatRupiah(total)}</span>
                 </div>
               </div>
             </div>
@@ -372,7 +380,7 @@ export default function NewOrderPage() {
             disabled={!form.customerName || !form.phone || !form.serviceId}
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-200 disabled:shadow-none"
           >
-            <Plus className="h-5 w-5" /> Create Order & Print Receipt
+            <Plus className="h-5 w-5" /> Simpan Pesanan dan Cetak Struk
           </button>
         </div>
       </div>

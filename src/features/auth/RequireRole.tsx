@@ -6,7 +6,7 @@ import { homeFor } from '@/features/auth/paths';
 
 /**
  * Penjaga route: hanya user login dengan role yang sesuai yang boleh masuk.
- * Ini hanya kenyamanan UI — keamanan data sebenarnya ditegakkan oleh RLS di database.
+ * Ini hanya kenyamanan UI, keamanan data sebenarnya ditegakkan oleh RLS di database.
  */
 export function RequireRole({ role }: { role: UserRole }) {
   const { currentUser, loading } = useAuth();

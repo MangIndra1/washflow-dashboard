@@ -1,6 +1,6 @@
 -- =============================================================================
--- WashFlow — menjadikan akun demo sebagai admin / karyawan
--- LANGKAH: (1) buat 3 user di Dashboard → Authentication → Users → Add user
+-- WashFlow: menjadikan akun demo sebagai admin / karyawan
+-- LANGKAH: (1) buat 3 user di Dashboard > Authentication > Users > Add user
 --              (centang "Auto Confirm User") dengan email di bawah;
 --          (2) jalankan file ini di SQL Editor.
 -- Aman dijalankan ulang. Ganti email jika Anda memakai email lain.

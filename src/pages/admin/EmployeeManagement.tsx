@@ -3,6 +3,7 @@ import { Plus, Search, ChevronUp, ChevronDown, Edit, UserX, UserCheck, Mail, Pho
 import { employees as initialEmployees, branches } from '@/data/mockData';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Modal } from '@/components/shared/Modal';
+import { formatRupiah, formatTanggal } from '@/lib/format';
 import { FormField, inputClass, selectClass } from '@/components/shared/FormField';
 
 type Employee = typeof initialEmployees[0];
@@ -81,11 +82,11 @@ export default function EmployeeManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Employee Management</h1>
-          <p className="text-slate-500 text-sm mt-1">{employees.length} total employees across {branches.length} branches</p>
+          <h1 className="text-slate-900">Manajemen Karyawan</h1>
+          <p className="text-slate-500 text-sm mt-1">{employees.length} karyawan di {branches.length} cabang</p>
         </div>
         <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
-          <Plus className="h-4 w-4" /> Add Employee
+          <Plus className="h-4 w-4" /> Tambah Karyawan
         </button>
       </div>
 
@@ -93,9 +94,9 @@ export default function EmployeeManagement() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: employees.length, color: 'slate' },
-          { label: 'Active', value: employees.filter(e => e.status === 'active').length, color: 'emerald' },
-          { label: 'Managers', value: employees.filter(e => e.role.includes('Manager')).length, color: 'blue' },
-          { label: 'Inactive', value: employees.filter(e => e.status === 'inactive').length, color: 'red' },
+          { label: 'Aktif', value: employees.filter(e => e.status === 'active').length, color: 'emerald' },
+          { label: 'Manajer', value: employees.filter(e => e.role.includes('Manajer')).length, color: 'blue' },
+          { label: 'Nonaktif', value: employees.filter(e => e.status === 'inactive').length, color: 'red' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3">
             <div className={`h-2 w-2 rounded-full bg-${s.color}-500`} />
@@ -112,7 +113,7 @@ export default function EmployeeManagement() {
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
-            placeholder="Search by name or email..."
+            placeholder="Cari nama atau email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
@@ -121,13 +122,13 @@ export default function EmployeeManagement() {
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-slate-400" />
           <select className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
-            <option value="">All Branches</option>
+            <option value="">Semua Cabang</option>
             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
           <select className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="">Semua Status</option>
+            <option value="active">Aktif</option>
+            <option value="inactive">Nonaktif</option>
           </select>
         </div>
       </div>
@@ -140,24 +141,24 @@ export default function EmployeeManagement() {
               <tr className="border-b border-slate-100 bg-slate-50">
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">
                   <button onClick={() => handleSort('name')} className="flex items-center hover:text-slate-600">
-                    Employee <SortIcon k="name" />
+                    Karyawan <SortIcon k="name" />
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Branch</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Kontak</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Cabang</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Jabatan</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">
                   <button onClick={() => handleSort('ordersHandled')} className="flex items-center hover:text-slate-600">
-                    Orders <SortIcon k="ordersHandled" />
+                    Pesanan <SortIcon k="ordersHandled" />
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">
                   <button onClick={() => handleSort('totalCommission')} className="flex items-center hover:text-slate-600">
-                    Commission <SortIcon k="totalCommission" />
+                    Komisi <SortIcon k="totalCommission" />
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -170,7 +171,7 @@ export default function EmployeeManagement() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-900">{emp.name}</p>
-                        <p className="text-xs text-slate-400">Since {emp.joinDate}</p>
+                        <p className="text-xs text-slate-400">Sejak {formatTanggal(emp.joinDate)}</p>
                       </div>
                     </div>
                   </td>
@@ -190,16 +191,16 @@ export default function EmployeeManagement() {
                   <td className="px-6 py-4 text-sm text-slate-600">{emp.role}</td>
                   <td className="px-6 py-4 text-sm font-medium text-slate-900">{emp.ordersHandled}</td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-medium text-emerald-700">${emp.totalCommission.toLocaleString()}</span>
+                    <span className="text-sm font-medium text-emerald-700">{formatRupiah(emp.totalCommission)}</span>
                     <span className="text-xs text-slate-400 ml-1">({emp.commissionRate}%)</span>
                   </td>
                   <td className="px-6 py-4"><StatusBadge status={emp.status} size="sm" /></td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => openEdit(emp)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
+                      <button onClick={() => openEdit(emp)} title="Ubah" aria-label="Ubah" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
                         <Edit className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => toggleStatus(emp.id)} className={`p-1.5 rounded-lg transition-colors ${emp.status === 'active' ? 'hover:bg-red-50 text-red-400' : 'hover:bg-emerald-50 text-emerald-500'}`}>
+                      <button onClick={() => toggleStatus(emp.id)} title={emp.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'} aria-label={emp.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'} className={`p-1.5 rounded-lg transition-colors ${emp.status === 'active' ? 'hover:bg-red-50 text-red-400' : 'hover:bg-emerald-50 text-emerald-500'}`}>
                         {emp.status === 'active' ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
                       </button>
                     </div>
@@ -212,13 +213,13 @@ export default function EmployeeManagement() {
 
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
-          <p className="text-xs text-slate-400">Showing {Math.min((page - 1) * perPage + 1, filtered.length)}–{Math.min(page * perPage, filtered.length)} of {filtered.length} employees</p>
+          <p className="text-xs text-slate-400">Menampilkan {Math.min((page - 1) * perPage + 1, filtered.length)} sampai {Math.min(page * perPage, filtered.length)} dari {filtered.length} karyawan</p>
           <div className="flex items-center gap-1">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Prev</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Sebelumnya</button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
               <button key={p} onClick={() => setPage(p)} className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${p === page ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-600'}`}>{p}</button>
             ))}
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Next</button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors">Berikutnya</button>
           </div>
         </div>
       </div>
@@ -227,52 +228,52 @@ export default function EmployeeManagement() {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editEmployee ? 'Edit Employee' : 'Add New Employee'}
-        subtitle={editEmployee ? `Editing ${editEmployee.name}` : 'Fill in employee details below'}
+        title={editEmployee ? 'Ubah Karyawan' : 'Tambah Karyawan Baru'}
+        subtitle={editEmployee ? `Mengubah ${editEmployee.name}` : 'Isi data karyawan di bawah'}
         size="md"
         footer={
           <div className="flex items-center justify-end gap-3">
-            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
             <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">
-              {editEmployee ? 'Save Changes' : 'Add Employee'}
+              {editEmployee ? 'Simpan Perubahan' : 'Tambah Karyawan'}
             </button>
           </div>
         }
       >
         <div className="space-y-4">
-          <FormField label="Full Name" required>
-            <input className={inputClass} value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Smith" />
+          <FormField label="Nama Lengkap" required>
+            <input className={inputClass} value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="mis. Ni Luh Ayu Prabandari" />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Email" required>
-              <input type="email" className={inputClass} value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@cleanwave.app" />
+              <input type="email" className={inputClass} value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="nama@washflow.example.com" />
             </FormField>
-            <FormField label="Phone">
-              <input className={inputClass} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+1 555-0000" />
+            <FormField label="Telepon">
+              <input className={inputClass} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="0812-3456-7890" />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Role" required>
+            <FormField label="Jabatan" required>
               <select className={selectClass} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
                 <option>Operator</option>
-                <option>Senior Operator</option>
-                <option>Branch Manager</option>
+                <option>Operator Senior</option>
+                <option>Manajer Cabang</option>
               </select>
             </FormField>
-            <FormField label="Assign Branch" required>
+            <FormField label="Penempatan Cabang" required>
               <select className={selectClass} value={form.branchId} onChange={e => setForm({...form, branchId: e.target.value})}>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Commission Rate (%)" hint="Percentage of order total">
+            <FormField label="Persentase Komisi (%)" hint="Persen dari total pesanan">
               <input type="number" min="0" max="20" className={inputClass} value={form.commissionRate} onChange={e => setForm({...form, commissionRate: Number(e.target.value)})} />
             </FormField>
             <FormField label="Status">
               <select className={selectClass} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">Aktif</option>
+                <option value="inactive">Nonaktif</option>
               </select>
             </FormField>
           </div>

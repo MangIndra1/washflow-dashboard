@@ -57,25 +57,25 @@ export default function LoginPage() {
             </div>
             <div>
               <p className="text-white font-bold text-xl leading-none">WashFlow</p>
-              <p className="text-blue-300 text-xs mt-0.5">Laundry Management System</p>
+              <p className="text-blue-300 text-xs mt-0.5">Sistem Manajemen Laundry</p>
             </div>
           </div>
 
           <div className="max-w-sm">
             <h1 className="text-white mb-4" style={{ fontSize: '2.25rem', fontWeight: 800, lineHeight: 1.2 }}>
-              Streamline your laundry operations
+              Kelola operasional laundry dalam satu tempat
             </h1>
             <p className="text-slate-400 text-base leading-relaxed">
-              The complete SaaS platform for modern laundry businesses — from single shops to multi-branch enterprises.
+              Untuk usaha laundry satu outlet maupun banyak cabang: pesanan, pembayaran, dan laporan.
             </p>
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-4">
             {[
-              { value: 'Multi-branch', label: 'Every outlet in one view' },
-              { value: 'Live orders', label: 'Kanban status board' },
-              { value: 'Payments', label: 'Down payments & receipts' },
-              { value: 'Reports', label: 'Revenue by branch' },
+              { value: 'Multi-cabang', label: 'Semua outlet dalam satu tampilan' },
+              { value: 'Pesanan', label: 'Papan status pengerjaan' },
+              { value: 'Pembayaran', label: 'Uang muka dan struk' },
+              { value: 'Laporan', label: 'Pendapatan per cabang' },
             ].map((stat) => (
               <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="text-white font-bold text-xl">{stat.value}</p>
@@ -85,7 +85,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="relative z-10 border-t border-white/10 pt-4 text-xs text-slate-500">© WashFlow · Laundry management system</p>
+        <p className="relative z-10 border-t border-white/10 pt-4 text-xs text-slate-500">© WashFlow, Sistem Manajemen Laundry</p>
       </div>
 
       {/* Right Panel */}
@@ -100,8 +100,8 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-slate-900" style={{ fontSize: '1.75rem', fontWeight: 700 }}>Welcome back</h2>
-            <p className="text-slate-500 mt-1.5">Sign in with your account to continue.</p>
+            <h2 className="text-slate-900" style={{ fontSize: '1.75rem', fontWeight: 700 }}>Selamat datang kembali</h2>
+            <p className="text-slate-500 mt-1.5">Masuk dengan akun Anda untuk melanjutkan.</p>
           </div>
 
           {(formError || notice) && (
@@ -118,18 +118,18 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="username"
-                placeholder="you@company.com"
+                placeholder="nama@perusahaan.com"
                 aria-invalid={errors.email ? true : undefined}
                 {...register('email', {
-                  required: 'Email is required',
-                  pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email address' },
+                  required: 'Email wajib diisi',
+                  pattern: { value: /^\S+@\S+\.\S+$/, message: 'Masukkan alamat email yang valid' },
                 })}
               />
               {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Kata sandi</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -137,12 +137,12 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   className="pr-10"
                   aria-invalid={errors.password ? true : undefined}
-                  {...register('password', { required: 'Password is required' })}
+                  {...register('password', { required: 'Kata sandi wajib diisi' })}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                   className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -152,12 +152,12 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" disabled={submitting} className="w-full bg-blue-600 py-5 text-white hover:bg-blue-700">
-              {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</> : 'Sign in'}
+              {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Sedang masuk...</> : 'Masuk'}
             </Button>
           </form>
 
           <p className="mt-8 text-center text-xs text-slate-400">
-            Accounts are created by your administrator. Contact them if you need access.
+            Akun dibuat oleh administrator. Hubungi administrator jika Anda belum punya akses.
           </p>
         </div>
       </div>

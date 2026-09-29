@@ -1,16 +1,17 @@
-import { ShoppingBag, CheckCircle, Clock, DollarSign, AlertCircle, ArrowRight, Plus } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Clock, Banknote, AlertCircle, ArrowRight, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { orders } from '@/data/mockData';
+import { formatRupiah, formatTanggal } from '@/lib/format';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useAuth } from '@/features/auth/AuthContext';
 
 const statusSteps = [
-  { status: 'received', label: 'Received', color: 'bg-slate-500' },
-  { status: 'washing', label: 'Washing', color: 'bg-blue-500' },
-  { status: 'drying', label: 'Drying', color: 'bg-cyan-500' },
-  { status: 'ironing', label: 'Ironing', color: 'bg-orange-500' },
-  { status: 'ready', label: 'Ready', color: 'bg-emerald-500' },
-  { status: 'completed', label: 'Done', color: 'bg-green-600' },
+  { status: 'received', label: 'Diterima', color: 'bg-slate-500' },
+  { status: 'washing', label: 'Dicuci', color: 'bg-blue-500' },
+  { status: 'drying', label: 'Dikeringkan', color: 'bg-cyan-500' },
+  { status: 'ironing', label: 'Disetrika', color: 'bg-orange-500' },
+  { status: 'ready', label: 'Siap', color: 'bg-emerald-500' },
+  { status: 'completed', label: 'Selesai', color: 'bg-green-600' },
 ];
 
 export default function EmployeeDashboard() {
@@ -37,16 +38,16 @@ export default function EmployeeDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Dashboard</h1>
+          <h1 className="text-slate-900">Dasbor</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {currentUser?.branchName || 'Branch'} · Friday, February 27, 2026
+            {currentUser?.branchName || 'Cabang'}, Jumat, 27 Februari 2026
           </p>
         </div>
         <button
           onClick={() => navigate('/employee/new-order')}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
         >
-          <Plus className="h-4 w-4" /> New Order
+          <Plus className="h-4 w-4" /> Pesanan Baru
         </button>
       </div>
 
@@ -55,13 +56,13 @@ export default function EmployeeDashboard() {
         <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200">
           <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-red-800">{overdueOrders.length} Overdue Order{overdueOrders.length > 1 ? 's' : ''}</p>
+            <p className="text-sm font-semibold text-red-800">{overdueOrders.length} pesanan terlambat</p>
             <p className="text-sm text-red-600 mt-0.5">
-              {overdueOrders.map(o => o.id).join(', ')} — requires immediate attention
+              {overdueOrders.map(o => o.id).join(', ')}. Perlu segera ditangani.
             </p>
           </div>
           <button onClick={() => navigate('/employee/orders')} className="ml-auto flex items-center gap-1 text-xs text-red-600 font-medium whitespace-nowrap hover:text-red-800">
-            View Orders <ArrowRight className="h-3.5 w-3.5" />
+            Lihat Pesanan <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
@@ -69,10 +70,10 @@ export default function EmployeeDashboard() {
       {/* Metric Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { title: "Today's Orders", value: todayOrders.length, sub: 'Received today', icon: ShoppingBag, bg: 'bg-emerald-100', color: 'text-emerald-600' },
-          { title: "Today's Revenue", value: `$${todayRevenue.toFixed(2)}`, sub: 'Collected payments', icon: DollarSign, bg: 'bg-blue-100', color: 'text-blue-600' },
-          { title: 'Active Orders', value: activeOrders.length, sub: 'In progress', icon: Clock, bg: 'bg-amber-100', color: 'text-amber-600' },
-          { title: 'Completed Today', value: todayOrders.filter(o => o.status === 'completed').length, sub: 'Delivered', icon: CheckCircle, bg: 'bg-purple-100', color: 'text-purple-600' },
+          { title: 'Pesanan Hari Ini', value: todayOrders.length, sub: 'Diterima hari ini', icon: ShoppingBag, bg: 'bg-emerald-100', color: 'text-emerald-600' },
+          { title: 'Pendapatan Hari Ini', value: formatRupiah(todayRevenue), sub: 'Pembayaran diterima', icon: Banknote, bg: 'bg-blue-100', color: 'text-blue-600' },
+          { title: 'Pesanan Aktif', value: activeOrders.length, sub: 'Sedang diproses', icon: Clock, bg: 'bg-amber-100', color: 'text-amber-600' },
+          { title: 'Selesai Hari Ini', value: todayOrders.filter(o => o.status === 'completed').length, sub: 'Sudah diambil', icon: CheckCircle, bg: 'bg-purple-100', color: 'text-purple-600' },
         ].map(c => (
           <div key={c.title} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
@@ -87,15 +88,15 @@ export default function EmployeeDashboard() {
         ))}
       </div>
 
-      {/* Order Pipeline */}
+      {/* Alur Pesanan */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-slate-900">Order Pipeline</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Active orders by current status</p>
+            <h3 className="text-slate-900">Alur Pesanan</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Pesanan aktif menurut status</p>
           </div>
           <button onClick={() => navigate('/employee/orders')} className="flex items-center gap-1.5 text-sm text-emerald-600 font-medium hover:text-emerald-700">
-            View Board <ArrowRight className="h-4 w-4" />
+            Lihat Papan <ArrowRight className="h-4 w-4" />
           </button>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -110,17 +111,17 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions + Recent Orders */}
+      {/* Aksi Cepat + Recent Orders */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Quick Actions */}
+        {/* Aksi Cepat */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          <h3 className="text-slate-900 mb-4">Quick Actions</h3>
+          <h3 className="text-slate-900 mb-4">Aksi Cepat</h3>
           <div className="space-y-3">
             {[
-              { label: 'Create New Order', icon: Plus, color: 'bg-emerald-600 hover:bg-emerald-700', to: '/employee/new-order' },
-              { label: 'View Order Board', icon: ShoppingBag, color: 'bg-blue-600 hover:bg-blue-700', to: '/employee/orders' },
-              { label: 'Search Customer', icon: CheckCircle, color: 'bg-slate-700 hover:bg-slate-800', to: '/employee/customers' },
-              { label: 'Daily Summary', icon: DollarSign, color: 'bg-purple-600 hover:bg-purple-700', to: '/employee/summary' },
+              { label: 'Buat Pesanan Baru', icon: Plus, color: 'bg-emerald-600 hover:bg-emerald-700', to: '/employee/new-order' },
+              { label: 'Lihat Papan Pesanan', icon: ShoppingBag, color: 'bg-blue-600 hover:bg-blue-700', to: '/employee/orders' },
+              { label: 'Cari Pelanggan', icon: CheckCircle, color: 'bg-slate-700 hover:bg-slate-800', to: '/employee/customers' },
+              { label: 'Ringkasan Harian', icon: Banknote, color: 'bg-purple-600 hover:bg-purple-700', to: '/employee/summary' },
             ].map(a => (
               <button
                 key={a.label}
@@ -137,9 +138,9 @@ export default function EmployeeDashboard() {
         {/* Recent Orders */}
         <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between p-6 border-b border-slate-100">
-            <h3 className="text-slate-900">Today's Orders</h3>
+            <h3 className="text-slate-900">Pesanan Hari Ini</h3>
             <button onClick={() => navigate('/employee/orders')} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
-              View All <ArrowRight className="h-4 w-4" />
+              Lihat Semua <ArrowRight className="h-4 w-4" />
             </button>
           </div>
           <div className="divide-y divide-slate-50">
@@ -148,13 +149,13 @@ export default function EmployeeDashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="text-xs font-semibold text-slate-500">{order.id}</p>
-                    {order.notes && <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Has note</span>}
+                    {order.notes && <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Ada catatan</span>}
                   </div>
                   <p className="text-sm font-medium text-slate-900">{order.customerName}</p>
-                  <p className="text-xs text-slate-400">{order.serviceName} · Due: {order.dueDate}</p>
+                  <p className="text-xs text-slate-400">{order.serviceName}, Estimasi: {formatTanggal(order.dueDate)}</p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <p className="text-sm font-semibold text-slate-900">${order.total.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-slate-900">{formatRupiah(order.total)}</p>
                   <StatusBadge status={order.status} size="sm" />
                 </div>
               </div>
@@ -162,7 +163,7 @@ export default function EmployeeDashboard() {
             {todayOrders.length === 0 && branchOrders.length === 0 && (
               <div className="text-center py-12 text-slate-400">
                 <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No orders yet today</p>
+                <p className="text-sm">Belum ada pesanan hari ini</p>
               </div>
             )}
           </div>

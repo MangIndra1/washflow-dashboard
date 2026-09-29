@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Star, Users, TrendingUp, Gift, Phone, Mail, Crown } from 'lucide-react';
 import { customers, membershipTiers } from '@/data/mockData';
+import { formatRupiah, formatRupiahRingkas, formatAngka, formatTanggal } from '@/lib/format';
 
 const tierColors: Record<string, { bg: string; text: string; border: string; badge: string }> = {
   Bronze:   { bg: 'bg-amber-50',  text: 'text-amber-800',  border: 'border-amber-200', badge: 'bg-amber-100 text-amber-800' },
@@ -32,21 +33,21 @@ export default function MembershipPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Membership & Loyalty</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage customer tiers, loyalty points, and member benefits</p>
+          <h1 className="text-slate-900">Keanggotaan & Loyalitas</h1>
+          <p className="text-slate-500 text-sm mt-1">Kelola tingkat pelanggan, poin loyalitas, dan keuntungan member</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
-          <Gift className="h-4 w-4" /> Configure Tiers
+          <Gift className="h-4 w-4" /> Atur Tingkat
         </button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: 'Total Members', value: customers.length, sub: 'All tiers', icon: Users, color: 'blue' },
-          { label: 'Platinum Members', value: customers.filter(c => c.membershipTier === 'Platinum').length, sub: 'Top loyalty tier', icon: Crown, color: 'blue' },
-          { label: 'Total Points Issued', value: totalPoints.toLocaleString(), sub: 'Across all members', icon: Star, color: 'amber' },
-          { label: 'Lifetime Value', value: `$${totalSpent.toFixed(0)}`, sub: 'All members combined', icon: TrendingUp, color: 'emerald' },
+          { label: 'Total Member', value: customers.length, sub: 'Semua tingkat', icon: Users, color: 'blue' },
+          { label: 'Member Platinum', value: customers.filter(c => c.membershipTier === 'Platinum').length, sub: 'Tingkat loyalitas tertinggi', icon: Crown, color: 'blue' },
+          { label: 'Total Poin Diberikan', value: formatAngka(totalPoints), sub: 'Dari seluruh member', icon: Star, color: 'amber' },
+          { label: 'Total Belanja Seumur Hidup', value: formatRupiahRingkas(totalSpent), sub: 'Gabungan semua member', icon: TrendingUp, color: 'emerald' },
         ].map(c => (
           <div key={c.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
@@ -75,7 +76,7 @@ export default function MembershipPage() {
                 <span className={`text-xl font-bold ${style.text}`}>{tier.count}</span>
               </div>
               <p className="text-xs text-slate-500 mb-3">
-                {tier.minPoints.toLocaleString()} – {tier.maxPoints ? tier.maxPoints.toLocaleString() + ' pts' : '∞'}
+                {formatAngka(tier.minPoints)} sampai {tier.maxPoints ? formatAngka(tier.maxPoints) + ' poin' : 'tanpa batas'}
               </p>
               <div className="space-y-1.5">
                 {tier.benefits.map(benefit => (
@@ -87,7 +88,7 @@ export default function MembershipPage() {
               </div>
               {tier.discount > 0 && (
                 <div className={`mt-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${style.badge}`}>
-                  <Gift className="h-3 w-3" /> {tier.discount}% discount
+                  <Gift className="h-3 w-3" /> Diskon {tier.discount}%
                 </div>
               )}
             </div>
@@ -98,11 +99,11 @@ export default function MembershipPage() {
       {/* Member Search & List */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h3 className="text-slate-900">Member Directory</h3>
+          <h3 className="text-slate-900">Daftar Member</h3>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input placeholder="Search members..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-52" />
+              <input placeholder="Cari member..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-52" />
             </div>
             <div className="flex items-center gap-1">
               {['', 'Bronze', 'Silver', 'Gold', 'Platinum'].map(t => (
@@ -111,7 +112,7 @@ export default function MembershipPage() {
                   onClick={() => setFilterTier(t)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterTier === t ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
-                  {t || 'All'}
+                  {t || 'Semua'}
                 </button>
               ))}
             </div>
@@ -122,7 +123,7 @@ export default function MembershipPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {['Member', 'Contact', 'Tier', 'Loyalty Points', 'Total Orders', 'Total Spent', 'Last Visit'].map(h => (
+                {['Member', 'Kontak', 'Tingkat', 'Poin Loyalitas', 'Total Pesanan', 'Total Belanja', 'Kunjungan Terakhir'].map(h => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -139,7 +140,7 @@ export default function MembershipPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-900">{customer.name}</p>
-                          <p className="text-xs text-slate-400">Since {customer.joinDate}</p>
+                          <p className="text-xs text-slate-400">Sejak {formatTanggal(customer.joinDate)}</p>
                         </div>
                       </div>
                     </td>
@@ -161,15 +162,15 @@ export default function MembershipPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">{customer.loyaltyPoints.toLocaleString()}</p>
+                        <p className="text-sm font-bold text-slate-900">{formatAngka(customer.loyaltyPoints)}</p>
                         <div className="h-1.5 w-20 bg-slate-200 rounded-full mt-1 overflow-hidden">
                           <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (customer.loyaltyPoints / 5000) * 100)}%` }} />
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-slate-900">{customer.totalOrders}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">${customer.totalSpent.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{customer.lastVisit}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{formatRupiah(customer.totalSpent)}</td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{formatTanggal(customer.lastVisit)}</td>
                   </tr>
                 );
               })}
@@ -177,7 +178,7 @@ export default function MembershipPage() {
           </table>
         </div>
         <div className="px-6 py-3 border-t border-slate-100 bg-slate-50">
-          <p className="text-xs text-slate-400">{filtered.length} members shown</p>
+          <p className="text-xs text-slate-400">{filtered.length} member ditampilkan</p>
         </div>
       </div>
     </div>

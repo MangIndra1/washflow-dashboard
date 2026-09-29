@@ -10,11 +10,11 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { notifications } from '@/data/mockData';
 
 const navItems = [
-  { to: '/employee', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { to: '/employee/new-order', label: 'New Order', icon: Plus },
-  { to: '/employee/orders', label: 'Orders Board', icon: Kanban },
-  { to: '/employee/customers', label: 'Customers', icon: Search },
-  { to: '/employee/summary', label: 'Daily Summary', icon: FileText },
+  { to: '/employee', label: 'Dasbor', icon: LayoutDashboard, exact: true },
+  { to: '/employee/new-order', label: 'Pesanan Baru', icon: Plus },
+  { to: '/employee/orders', label: 'Papan Pesanan', icon: Kanban },
+  { to: '/employee/customers', label: 'Pelanggan', icon: Search },
+  { to: '/employee/summary', label: 'Ringkasan Harian', icon: FileText },
 ];
 
 const notifIcon: Record<string, ReactElement> = {
@@ -50,7 +50,7 @@ export default function EmployeeLayout() {
           {sidebarOpen && (
             <div>
               <p className="text-white font-semibold text-sm leading-none">WashFlow</p>
-              <p className="text-slate-400 text-xs mt-0.5">Staff Portal</p>
+              <p className="text-slate-400 text-xs mt-0.5">Portal Staf</p>
             </div>
           )}
         </div>
@@ -58,7 +58,7 @@ export default function EmployeeLayout() {
         {/* Branch badge */}
         {sidebarOpen && currentUser?.branchName && (
           <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700">
-            <p className="text-slate-400 text-xs">Current Branch</p>
+            <p className="text-slate-400 text-xs">Cabang Saat Ini</p>
             <p className="text-slate-100 text-sm font-medium mt-0.5">{currentUser.branchName}</p>
           </div>
         )}
@@ -67,7 +67,7 @@ export default function EmployeeLayout() {
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
           {sidebarOpen && (
             <p className="px-2 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Operations
+              Operasional
             </p>
           )}
           {navItems.map((item) => (
@@ -87,7 +87,7 @@ export default function EmployeeLayout() {
                 <>
                   <item.icon className={`h-4.5 w-4.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
                   {sidebarOpen && <span>{item.label}</span>}
-                  {item.label === 'New Order' && sidebarOpen && (
+                  {item.to === '/employee/new-order' && sidebarOpen && (
                     <span className="ml-auto h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center">
                       <Plus className="h-3 w-3 text-white" />
                     </span>
@@ -108,15 +108,15 @@ export default function EmployeeLayout() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-medium truncate">{currentUser?.name || 'Employee'}</p>
-                <p className="text-slate-400 text-xs truncate">{currentUser?.branchName || 'Branch'}</p>
+                <p className="text-white text-xs font-medium truncate">{currentUser?.name || 'Karyawan'}</p>
+                <p className="text-slate-400 text-xs truncate">{currentUser?.branchName || 'Cabang'}</p>
               </div>
-              <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition-colors">
+              <button onClick={handleLogout} aria-label="Keluar" title="Keluar" className="text-slate-400 hover:text-red-400 transition-colors">
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <button onClick={handleLogout} className="flex items-center justify-center w-full text-slate-400 hover:text-red-400 p-1">
+            <button onClick={handleLogout} aria-label="Keluar" title="Keluar" className="flex items-center justify-center w-full text-slate-400 hover:text-red-400 p-1">
               <LogOut className="h-4 w-4" />
             </button>
           )}
@@ -130,11 +130,12 @@ export default function EmployeeLayout() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? 'Tutup menu samping' : 'Buka menu samping'}
               className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Staff</span>
+            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Staf</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -142,6 +143,7 @@ export default function EmployeeLayout() {
             <div className="relative">
               <button
                 onClick={() => { setShowNotif(!showNotif); setShowProfile(false); }}
+                aria-label="Notifikasi"
                 className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
               >
                 <Bell className="h-5 w-5" />
@@ -155,8 +157,8 @@ export default function EmployeeLayout() {
               {showNotif && (
                 <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-slate-900">Notifications</p>
-                    <span className="text-xs text-emerald-600 cursor-pointer font-medium">Mark all read</span>
+                    <p className="text-sm font-semibold text-slate-900">Notifikasi</p>
+                    <span className="text-xs text-emerald-600 cursor-pointer font-medium">Tandai semua dibaca</span>
                   </div>
                   <div className="divide-y divide-slate-50">
                     {notifications.map(n => (
@@ -184,8 +186,8 @@ export default function EmployeeLayout() {
                   <span className="text-white text-xs font-semibold">{currentUser?.avatar || 'EM'}</span>
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-xs font-semibold text-slate-800">{currentUser?.name || 'Staff'}</p>
-                  <p className="text-xs text-slate-400">{currentUser?.branchName || 'Branch'}</p>
+                  <p className="text-xs font-semibold text-slate-800">{currentUser?.name || 'Staf'}</p>
+                  <p className="text-xs text-slate-400">{currentUser?.branchName || 'Cabang'}</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
@@ -198,13 +200,13 @@ export default function EmployeeLayout() {
                   </div>
                   <div className="py-1">
                     <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                      <Settings className="h-4 w-4" /> Settings
+                      <Settings className="h-4 w-4" /> Pengaturan
                     </button>
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4" /> Sign out
+                      <LogOut className="h-4 w-4" /> Keluar
                     </button>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 -- =============================================================================
--- WashFlow — skema database v1
+-- WashFlow: skema database v1
 -- Model bisnis: single-tenant (satu project Supabase per klien laundry).
 -- Uang disimpan sebagai bigint dalam Rupiah utuh (tanpa desimal).
 -- =============================================================================
@@ -104,7 +104,7 @@ create table public.promotions (
   code        text not null unique check (code = upper(code)),
   name        text not null,
   type        public.promo_type not null,
-  value       bigint not null check (value > 0),          -- persen (1–100) atau Rupiah
+  value       bigint not null check (value > 0),          -- persen (1-100) atau Rupiah
   min_order   bigint not null default 0 check (min_order >= 0),
   max_usage   integer check (max_usage is null or max_usage > 0),
   valid_from  date not null,
@@ -209,7 +209,7 @@ end $$;
 
 -- ─── TRIGGER: profil otomatis untuk user baru ────────────────────────────────
 -- PENTING: role TIDAK PERNAH dibaca dari metadata signup (metadata bisa dimanipulasi user).
--- User baru selalu 'employee' tanpa cabang → tidak melihat data apa pun sampai admin menugaskan.
+-- User baru selalu 'employee' tanpa cabang, jadi tidak melihat data apa pun sampai admin menugaskan.
 create function private.handle_new_user() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin

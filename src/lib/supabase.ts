@@ -5,7 +5,7 @@ import type { Database } from '@/types/database';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-/** false bila .env.local belum diisi — App menampilkan layar konfigurasi, bukan crash. */
+/** false bila .env.local belum diisi, App menampilkan layar konfigurasi, bukan crash. */
 export const isSupabaseConfigured = Boolean(url && key);
 
 /**

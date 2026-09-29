@@ -3,7 +3,10 @@ import { Plus, Percent, Tag, Calendar, Users, Copy, Edit, Trash2, ToggleLeft, To
 import { promotions as initialPromos } from '@/data/mockData';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Modal } from '@/components/shared/Modal';
+import { formatRupiah, formatTanggal, formatAngka } from '@/lib/format';
 import { FormField, inputClass, selectClass } from '@/components/shared/FormField';
+
+const statusLabel: Record<string, string> = { active: 'Aktif', scheduled: 'Terjadwal', expired: 'Kedaluwarsa' };
 
 type Promo = typeof initialPromos[0];
 
@@ -62,21 +65,21 @@ export default function PromotionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Promotions & Discounts</h1>
-          <p className="text-slate-500 text-sm mt-1">Create and manage discount codes and promotional campaigns</p>
+          <h1 className="text-slate-900">Promo dan Diskon</h1>
+          <p className="text-slate-500 text-sm mt-1">Buat dan kelola kode diskon serta kampanye promo</p>
         </div>
         <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
-          <Plus className="h-4 w-4" /> New Promotion
+          <Plus className="h-4 w-4" /> Promo Baru
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Active Promos', value: stats.active, icon: Percent, color: 'emerald' },
-          { label: 'Total Redemptions', value: stats.totalUsage, icon: Users, color: 'blue' },
-          { label: 'Scheduled', value: stats.scheduled, icon: Calendar, color: 'amber' },
-          { label: 'Expired', value: stats.expired, icon: Tag, color: 'slate' },
+          { label: 'Promo Aktif', value: stats.active, icon: Percent, color: 'emerald' },
+          { label: 'Total Penggunaan', value: stats.totalUsage, icon: Users, color: 'blue' },
+          { label: 'Terjadwal', value: stats.scheduled, icon: Calendar, color: 'amber' },
+          { label: 'Kedaluwarsa', value: stats.expired, icon: Tag, color: 'slate' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
@@ -96,9 +99,9 @@ export default function PromotionsPage() {
           <button
             key={status || 'all'}
             onClick={() => setFilterStatus(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${filterStatus === status ? 'bg-blue-600 text-white shadow-sm shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === status ? 'bg-blue-600 text-white shadow-sm shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
           >
-            {status || 'All Promotions'}
+            {status ? statusLabel[status] : 'Semua Promo'}
             <span className="ml-2 text-xs opacity-70">({status ? promos.filter(p => p.status === status).length : promos.length})</span>
           </button>
         ))}
@@ -117,8 +120,8 @@ export default function PromotionsPage() {
                   <div>
                     <h4 className="text-slate-900 font-semibold text-sm leading-snug">{promo.name}</h4>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      {promo.type === 'percentage' ? `${promo.value}% off` : `$${promo.value} off`}
-                      {promo.minOrder > 0 && ` · min $${promo.minOrder}`}
+                      {promo.type === 'percentage' ? `Diskon ${promo.value}%` : `Diskon ${formatRupiah(promo.value)}`}
+                      {promo.minOrder > 0 && `, min. ${formatRupiah(promo.minOrder)}`}
                     </p>
                   </div>
                 </div>
@@ -133,6 +136,8 @@ export default function PromotionsPage() {
                 </div>
                 <button
                   onClick={() => handleCopy(promo.code)}
+                  title="Salin kode"
+                  aria-label="Salin kode"
                   className={`p-2 rounded-lg border transition-colors ${copied === promo.code ? 'border-emerald-300 bg-emerald-50 text-emerald-600' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
                 >
                   <Copy className="h-3.5 w-3.5" />
@@ -142,8 +147,8 @@ export default function PromotionsPage() {
               {/* Usage Bar */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs text-slate-500">Usage</span>
-                  <span className="text-xs font-medium text-slate-700">{promo.usageCount} / {promo.maxUsage}</span>
+                  <span className="text-xs text-slate-500">Pemakaian</span>
+                  <span className="text-xs font-medium text-slate-700">{formatAngka(promo.usageCount)} / {formatAngka(promo.maxUsage)}</span>
                 </div>
                 <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                   <div
@@ -156,7 +161,7 @@ export default function PromotionsPage() {
               {/* Dates */}
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <Calendar className="h-3.5 w-3.5" />
-                <span>{promo.validFrom} → {promo.validTo}</span>
+                <span>{formatTanggal(promo.validFrom)} sampai {formatTanggal(promo.validTo)}</span>
               </div>
             </div>
 
@@ -169,9 +174,9 @@ export default function PromotionsPage() {
               </button>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => openEdit(promo)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-600 hover:bg-white border border-slate-200 transition-colors">
-                  <Edit className="h-3.5 w-3.5" /> Edit
+                  <Edit className="h-3.5 w-3.5" /> Ubah
                 </button>
-                <button onClick={() => setPromos(p => p.filter(x => x.id !== promo.id))} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors">
+                <button onClick={() => setPromos(p => p.filter(x => x.id !== promo.id))} title="Hapus" aria-label="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -181,45 +186,45 @@ export default function PromotionsPage() {
       </div>
 
       {/* Modal */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editPromo ? 'Edit Promotion' : 'New Promotion'} size="md"
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editPromo ? 'Ubah Promo' : 'Promo Baru'} size="md"
         footer={
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">{editPromo ? 'Save Changes' : 'Create Promotion'}</button>
+            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
+            <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">{editPromo ? 'Simpan Perubahan' : 'Buat Promo'}</button>
           </div>
         }
       >
         <div className="space-y-4">
-          <FormField label="Promotion Name" required>
-            <input className={inputClass} value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Summer Flash Sale" />
+          <FormField label="Nama Promo" required>
+            <input className={inputClass} value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="mis. Promo Gajian" />
           </FormField>
-          <FormField label="Promo Code" required>
-            <input className={`${inputClass} uppercase`} value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="e.g. SUMMER20" />
+          <FormField label="Kode Promo" required>
+            <input className={`${inputClass} uppercase`} value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} placeholder="mis. GAJIAN20" />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Discount Type" required>
+            <FormField label="Jenis Diskon" required>
               <select className={selectClass} value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
-                <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed Amount ($)</option>
+                <option value="percentage">Persentase (%)</option>
+                <option value="fixed">Nominal Tetap (Rp)</option>
               </select>
             </FormField>
-            <FormField label="Discount Value" required>
-              <input type="number" className={inputClass} value={form.value} onChange={e => setForm({...form, value: e.target.value})} placeholder={form.type === 'percentage' ? '% discount' : '$ amount'} />
+            <FormField label="Nilai Diskon" required>
+              <input type="number" step={form.type === 'percentage' ? 1 : 1000} className={inputClass} value={form.value} onChange={e => setForm({...form, value: e.target.value})} placeholder={form.type === 'percentage' ? 'Persen diskon' : 'Nominal (Rp), mis. 10000'} />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Min Order ($)">
-              <input type="number" className={inputClass} value={form.minOrder} onChange={e => setForm({...form, minOrder: e.target.value})} placeholder="0 = no minimum" />
+            <FormField label="Minimal Pesanan (Rp)">
+              <input type="number" step="1000" className={inputClass} value={form.minOrder} onChange={e => setForm({...form, minOrder: e.target.value})} placeholder="0 = tanpa minimum" />
             </FormField>
-            <FormField label="Max Usage">
-              <input type="number" className={inputClass} value={form.maxUsage} onChange={e => setForm({...form, maxUsage: e.target.value})} placeholder="Total redemption limit" />
+            <FormField label="Batas Pemakaian">
+              <input type="number" className={inputClass} value={form.maxUsage} onChange={e => setForm({...form, maxUsage: e.target.value})} placeholder="Batas total penggunaan" />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Valid From" required>
+            <FormField label="Berlaku Mulai" required>
               <input type="date" className={inputClass} value={form.validFrom} onChange={e => setForm({...form, validFrom: e.target.value})} />
             </FormField>
-            <FormField label="Valid To" required>
+            <FormField label="Berlaku Sampai" required>
               <input type="date" className={inputClass} value={form.validTo} onChange={e => setForm({...form, validTo: e.target.value})} />
             </FormField>
           </div>

@@ -15,7 +15,7 @@ export interface CurrentUser {
   branchName: string | null;
   branchCode: string | null;
   /**
-   * SEMENTARA (M1→M3): id cabang gaya data contoh ('b1'…'b4') untuk halaman karyawan yang
+   * SEMENTARA (M1 ke M3): id cabang gaya data contoh ('b1' sampai 'b4') untuk halaman karyawan yang
    * masih membaca mockData. Dihapus saat halaman-halaman itu pindah ke Supabase.
    */
   legacyBranchId: string | undefined;
@@ -24,10 +24,10 @@ export interface CurrentUser {
 type AccessIssue = 'no-profile' | 'inactive' | 'unassigned' | 'load-error';
 
 const NOTICES: Record<AccessIssue, string> = {
-  'no-profile': 'Your account has no profile yet. Please contact your administrator.',
-  inactive: 'Your account has been deactivated. Please contact your administrator.',
-  unassigned: 'Your account has not been assigned to a branch yet. Please contact your administrator.',
-  'load-error': 'Could not load your account. Check your connection and try again.',
+  'no-profile': 'Akun Anda belum memiliki profil. Hubungi administrator.',
+  inactive: 'Akun Anda dinonaktifkan. Hubungi administrator.',
+  unassigned: 'Akun Anda belum ditugaskan ke cabang. Hubungi administrator.',
+  'load-error': 'Data akun tidak dapat dimuat. Periksa koneksi lalu coba lagi.',
 };
 
 // TODO(M3): hapus bersama mockData
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'TOKEN_REFRESHED') return;
       // Sesi yang sama dipulihkan (mis. tab kembali fokus): tidak perlu memuat ulang profil.
       if (event === 'SIGNED_IN' && session && session.user.id === userRef.current?.id) return;
-      // Jangan memanggil API Supabase langsung di dalam callback ini (berisiko deadlock) — tunda satu tick.
+      // Jangan memanggil API Supabase langsung di dalam callback ini (berisiko deadlock) , tunda satu tick.
       setTimeout(() => { void loadUser(session); }, 0);
     });
     return () => subscription.unsubscribe();
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       const invalid = error.status === 400 || /invalid login credentials/i.test(error.message);
       // Pesan sama untuk email tak terdaftar & sandi salah (tidak membocorkan email mana yang terdaftar).
-      return { error: invalid ? 'Incorrect email or password.' : 'Unable to sign in right now. Please try again.' };
+      return { error: invalid ? 'Email atau kata sandi salah.' : 'Tidak dapat masuk saat ini. Coba lagi.' };
     }
     return { error: null };
   }, []);

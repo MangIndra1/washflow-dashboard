@@ -1,5 +1,5 @@
 -- =============================================================================
--- WashFlow — data demo (fiktif, Indonesia / Rupiah)
+-- WashFlow: data demo (fiktif, Indonesia / Rupiah)
 -- Aman dijalankan pada database KOSONG. Untuk mengulang: `supabase db reset` (lokal)
 -- atau kosongkan tabel terlebih dahulu. Order dibuat relatif terhadap now() sehingga
 -- dashboard selalu terlihat "hidup". Nomor telepon & alamat sepenuhnya fiktif.
@@ -21,8 +21,8 @@ insert into public.branches (id, code, name, address, phone, status, open_time, 
 
 -- ─── Layanan (harga Rupiah per unit) ─────────────────────────────────────────
 insert into public.services (id, name, category, unit, price, est_hours, description, is_active, sort_order) values
-  ('00000000-0000-0000-0000-0000000000a1', 'Cuci Kiloan Reguler',  'Reguler',  'kg',     7000,  48, 'Cuci, kering, dan lipat — selesai 2 hari',                      true,  1),
-  ('00000000-0000-0000-0000-0000000000a2', 'Cuci Kiloan Express',  'Express',  'kg',    12000,   6, 'Cuci, kering, dan lipat — selesai di hari yang sama',           true,  2),
+  ('00000000-0000-0000-0000-0000000000a1', 'Cuci Kiloan Reguler',  'Reguler',  'kg',     7000,  48, 'Cuci, kering, dan lipat, selesai 2 hari',                      true,  1),
+  ('00000000-0000-0000-0000-0000000000a2', 'Cuci Kiloan Express',  'Express',  'kg',    12000,   6, 'Cuci, kering, dan lipat, selesai di hari yang sama',           true,  2),
   ('00000000-0000-0000-0000-0000000000a3', 'Setrika Saja',         'Reguler',  'kg',     5000,  24, 'Setrika dan lipat rapi tanpa cuci',                             true,  3),
   ('00000000-0000-0000-0000-0000000000a4', 'Dry Cleaning',         'Premium',  'pcs',   25000,  72, 'Perawatan khusus jas, gaun, dan pakaian berbahan halus',        true,  4),
   ('00000000-0000-0000-0000-0000000000a5', 'Bed Cover & Selimut',  'Khusus',   'pcs',   35000,  48, 'Cuci bed cover, selimut, dan sprei ukuran besar',               true,  5),

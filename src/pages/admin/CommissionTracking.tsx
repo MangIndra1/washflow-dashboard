@@ -1,21 +1,24 @@
 import { useState } from 'react';
-import { DollarSign, TrendingUp, Users, Download, Filter, Star } from 'lucide-react';
+import { Banknote, TrendingUp, Users, Download, Filter, Star } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { employees, branches } from '@/data/mockData';
+import { formatRupiah, formatRupiahRingkas, formatAngka } from '@/lib/format';
 
 const monthlyCommission = [
-  { month: 'Sep', total: 2340 },
-  { month: 'Oct', total: 2780 },
-  { month: 'Nov', total: 3120 },
-  { month: 'Dec', total: 3450 },
-  { month: 'Jan', total: 3100 },
-  { month: 'Feb', total: 3835 },
+  { month: 'Sep', total: 7400000 },
+  { month: 'Okt', total: 8800000 },
+  { month: 'Nov', total: 9900000 },
+  { month: 'Des', total: 11000000 },
+  { month: 'Jan', total: 9900000 },
+  { month: 'Feb', total: employees.reduce((s, e) => s + e.totalCommission, 0) },
 ];
+
+const rataRate = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 });
 
 export default function CommissionTracking() {
   const [filterBranch, setFilterBranch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [payoutMonth] = useState('February 2026');
+  const [payoutMonth] = useState('Februari 2026');
 
   const filtered = employees.filter(e => {
     const matchBranch = !filterBranch || e.branchId === filterBranch;
@@ -34,15 +37,15 @@ export default function CommissionTracking() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-900">Commission Tracking</h1>
-          <p className="text-slate-500 text-sm mt-1">Employee commission calculation and payout management</p>
+          <h1 className="text-slate-900">Pelacakan Komisi</h1>
+          <p className="text-slate-500 text-sm mt-1">Hitung komisi karyawan dan kelola pencairannya</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-slate-500 bg-white border border-slate-200 px-3 py-2 rounded-lg">
-            Period: <span className="font-medium text-slate-800">{payoutMonth}</span>
+            Periode: <span className="font-medium text-slate-800">{payoutMonth}</span>
           </span>
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 shadow-sm shadow-blue-200">
-            <Download className="h-4 w-4" /> Export Payroll
+            <Download className="h-4 w-4" /> Ekspor Penggajian
           </button>
         </div>
       </div>
@@ -50,10 +53,10 @@ export default function CommissionTracking() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: 'Total Commission Owed', value: `$${totalCommission.toLocaleString()}`, sub: `${filtered.length} employees`, icon: DollarSign, color: 'blue' },
-          { label: 'Total Orders Handled', value: totalOrders.toLocaleString(), sub: 'This month', icon: TrendingUp, color: 'emerald' },
-          { label: 'Active Employees', value: employees.filter(e => e.status === 'active').length, sub: 'Eligible for commission', icon: Users, color: 'purple' },
-          { label: 'Avg Commission Rate', value: `${avgRate.toFixed(1)}%`, sub: 'Across all employees', icon: Star, color: 'amber' },
+          { label: 'Total Komisi Terutang', value: formatRupiah(totalCommission), sub: `${filtered.length} karyawan`, icon: Banknote, color: 'blue' },
+          { label: 'Total Pesanan Ditangani', value: formatAngka(totalOrders), sub: 'Bulan ini', icon: TrendingUp, color: 'emerald' },
+          { label: 'Karyawan Aktif', value: employees.filter(e => e.status === 'active').length, sub: 'Berhak menerima komisi', icon: Users, color: 'purple' },
+          { label: 'Rata-rata Tarif Komisi', value: `${rataRate.format(avgRate)}%`, sub: 'Seluruh karyawan', icon: Star, color: 'amber' },
         ].map(c => (
           <div key={c.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
@@ -74,7 +77,7 @@ export default function CommissionTracking() {
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white">
           <div className="flex items-center gap-2 mb-4">
             <Star className="h-5 w-5 text-blue-200" />
-            <p className="text-blue-200 text-sm font-medium">Top Earner This Month</p>
+            <p className="text-blue-200 text-sm font-medium">Komisi Tertinggi Bulan Ini</p>
           </div>
           <div className="flex items-center gap-3 mb-4">
             <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg">
@@ -83,16 +86,16 @@ export default function CommissionTracking() {
             <div>
               <p className="text-white font-bold text-lg">{topEarner.name}</p>
               <p className="text-blue-200 text-sm">{topEarner.role}</p>
-              <p className="text-blue-300 text-xs">{topEarner.branchName} Branch</p>
+              <p className="text-blue-300 text-xs">Cabang {topEarner.branchName}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/10 rounded-lg p-3">
-              <p className="text-blue-200 text-xs">Commission</p>
-              <p className="text-white font-bold text-xl mt-0.5">${topEarner.totalCommission}</p>
+              <p className="text-blue-200 text-xs">Komisi</p>
+              <p className="text-white font-bold text-xl mt-0.5">{formatRupiah(topEarner.totalCommission)}</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3">
-              <p className="text-blue-200 text-xs">Orders</p>
+              <p className="text-blue-200 text-xs">Pesanan</p>
               <p className="text-white font-bold text-xl mt-0.5">{topEarner.ordersHandled}</p>
             </div>
           </div>
@@ -101,19 +104,19 @@ export default function CommissionTracking() {
         {/* Commission by Month Chart */}
         <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <div className="mb-4">
-            <h3 className="text-slate-900">Commission Trend</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Total payroll commission over 6 months</p>
+            <h3 className="text-slate-900">Tren Komisi</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Total komisi penggajian selama 6 bulan</p>
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={monthlyCommission}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={v => formatRupiahRingkas(v)} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }}
                 labelStyle={{ color: '#94A3B8', fontSize: 11 }}
                 itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
-                formatter={(v: number) => [`$${v.toLocaleString()}`, 'Commission']}
+                formatter={(v: number) => [formatRupiah(v), 'Komisi']}
               />
               <Bar dataKey="total" fill="#3B82F6" radius={[6, 6, 0, 0]} />
             </BarChart>
@@ -125,19 +128,19 @@ export default function CommissionTracking() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div>
-            <h3 className="text-slate-900">Commission Detail — {payoutMonth}</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Individual breakdown per employee</p>
+            <h3 className="text-slate-900">Rincian Komisi {payoutMonth}</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Rincian per karyawan</p>
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-400" />
             <select className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
-              <option value="">All Branches</option>
+              <option value="">Semua Cabang</option>
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             <select className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">Semua Status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
             </select>
           </div>
         </div>
@@ -146,7 +149,7 @@ export default function CommissionTracking() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {['Employee', 'Branch', 'Role', 'Orders Handled', 'Commission Rate', 'Commission Owed', 'Payout Status'].map(h => (
+                {['Karyawan', 'Cabang', 'Jabatan', 'Pesanan Ditangani', 'Tarif Komisi', 'Komisi Terutang', 'Status Pencairan'].map(h => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -174,11 +177,11 @@ export default function CommissionTracking() {
                     <span className="text-sm font-medium text-blue-700">{emp.commissionRate}%</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-emerald-700">${emp.totalCommission.toLocaleString()}</span>
+                    <span className="text-sm font-bold text-emerald-700">{formatRupiah(emp.totalCommission)}</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${emp.status === 'active' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
-                      {emp.status === 'active' ? 'Pending Payout' : 'Inactive'}
+                      {emp.status === 'active' ? 'Menunggu Pencairan' : 'Nonaktif'}
                     </span>
                   </td>
                 </tr>
@@ -188,11 +191,11 @@ export default function CommissionTracking() {
         </div>
 
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50">
-          <p className="text-sm text-slate-500">{filtered.length} employees</p>
+          <p className="text-sm text-slate-500">{filtered.length} karyawan</p>
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-xs text-slate-400">Total Commission to Pay</p>
-              <p className="text-base font-bold text-blue-700">${totalCommission.toLocaleString()}</p>
+              <p className="text-xs text-slate-400">Total Komisi yang Dibayarkan</p>
+              <p className="text-base font-bold text-blue-700">{formatRupiah(totalCommission)}</p>
             </div>
           </div>
         </div>

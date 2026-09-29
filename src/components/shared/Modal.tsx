@@ -50,7 +50,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, size = 'md',
               )}
             </div>
             <DialogPrimitive.Close
-              aria-label="Close"
+              aria-label="Tutup"
               className="ml-4 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
             >
               <X className="h-5 w-5" />

@@ -1,10 +1,10 @@
 -- =============================================================================
--- WashFlow — keamanan: helper role, trigger integritas, grant, Row Level Security
+-- WashFlow: keamanan: helper role, trigger integritas, grant, Row Level Security
 -- Prinsip: default TERTUTUP. anon tidak punya akses apa pun; user login hanya
 -- melihat data sesuai role & cabangnya.
 -- =============================================================================
 
--- ─── HELPER (schema private → tidak terekspos lewat Data API) ────────────────
+-- ─── HELPER (schema private, tidak terekspos lewat Data API) ────────────────
 -- "staff" = aktif DAN sudah ditugaskan (admin, atau karyawan yang punya cabang).
 -- User baru yang belum ditugaskan tidak melihat data bisnis apa pun.
 create function private.is_staff() returns boolean
@@ -192,7 +192,7 @@ create policy payments_admin_delete on public.payments for delete to authenticat
 create policy order_status_logs_select on public.order_status_logs for select to authenticated
   using (exists (select 1 from public.orders o where o.id = order_id));
 
--- inventory: karyawan baca stok cabangnya; ubah hanya admin (pergerakan stok oleh karyawan → M6)
+-- inventory: karyawan baca stok cabangnya; ubah hanya admin (pergerakan stok oleh karyawan > M6)
 create policy inventory_select on public.inventory_items for select to authenticated using (
   (select private.is_admin()) or branch_id = (select private.my_branch_id())
 );
