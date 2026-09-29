@@ -300,6 +300,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           completed_at: string | null;
+          discount_label: string | null;
+          client_key: string | null;
         };
         Insert: {
           id?: string;
@@ -320,6 +322,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           completed_at?: string | null;
+          discount_label?: string | null;
+          client_key?: string | null;
         };
         Update: {
           id?: string;
@@ -340,6 +344,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           completed_at?: string | null;
+          discount_label?: string | null;
+          client_key?: string | null;
         };
         Relationships: [
           {
@@ -563,6 +569,15 @@ export type Database = {
         };
         Relationships: [];
       };
+      customer_stats: {
+        Row: {
+          customer_id: string | null;
+          orders_count: number | null;
+          total_spent: number | null;
+          last_visit: string | null;
+        };
+        Relationships: [];
+      };
       employee_stats: {
         Row: {
           profile_id: string | null;
@@ -580,7 +595,33 @@ export type Database = {
         Relationships: [];
       };
     };
-    Functions: { [_ in never]: never };
+    Functions: {
+      create_order: {
+        Args: {
+          p_branch_id?: string;
+          p_client_key?: string;
+          p_customer_id: string;
+          p_items: Json;
+          p_notes?: string;
+          p_pay_amount?: number;
+          p_pay_method?: Database["public"]["Enums"]["payment_method"];
+          p_promo_code?: string;
+        };
+        Returns: string;
+      };
+      quote_order: {
+        Args: { p_customer_id: string; p_items: Json; p_promo_code?: string };
+        Returns: Json;
+      };
+      record_payment: {
+        Args: {
+          p_amount: number;
+          p_method?: Database["public"]["Enums"]["payment_method"];
+          p_order_id: string;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: {
       app_role: "admin" | "employee";
       branch_status: "active" | "maintenance" | "closed";

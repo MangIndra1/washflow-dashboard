@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { supabase } from '@/lib/supabase';
 import { deleteService, fetchServices, saveService, setServiceActive } from './api';
 
 export const serviceKeys = { all: ['services'] as const };
@@ -29,4 +30,16 @@ export function useToggleService() {
 export function useDeleteService() {
   const invalidate = useInvalidate();
   return useMutation({ mutationFn: deleteService, onSuccess: invalidate });
+}
+
+/** Layanan aktif untuk form order (tanpa statistik). */
+export function useActiveServices() {
+  return useQuery({
+    queryKey: ['services', 'active'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('services').select('*').eq('is_active', true).order('sort_order').order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
 }

@@ -88,6 +88,8 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M1**: Skema Supabase + RLS per cabang + seed demo + login email/password + route guard per role. (Sign-up publik dimatikan; staf dibuat admin lewat Dashboard.)
 - [x] **M2**: CRUD cabang, layanan, karyawan dari Supabase (TanStack Query, react-hook-form). Karyawan baru dibuat lewat Edge Function `create-staff` dan `reset-staff-password` (butuh deploy, lihat README).
 - [ ] **M3**: Alur inti: cari/tambah pelanggan > order baru > kanban status > pembayaran > struk. *(Titik "layak dipamerkan" pertama.)*
+  - [x] **M3a**: pelanggan (cari/tambah/ubah), order baru multi-layanan lewat RPC, pembayaran (lunas/DP/nanti + pembayaran susulan), struk cetak + tautan WhatsApp.
+  - [ ] **M3b**: papan pesanan (kanban status) dan daftar pesanan nyata, dasbor karyawan dan ringkasan harian dari query, hapus `legacyBranchId`/mockData karyawan.
 - [ ] **M4**: Dashboard & laporan dari query nyata (bukan angka statis), export CSV.
 - [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
 - [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait).
@@ -105,8 +107,8 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Role **tidak pernah** dibaca dari metadata sign-up; `handle_new_user` selalu membuat role `employee` tanpa cabang. Admin/cabang ditetapkan manual (`demo-users.sql`).
 - Fungsi helper RLS (`is_staff`, `is_admin`, `my_branch_id`) ada di schema `private` (tidak terekspos Data API).
 - Uang disimpan sebagai bigint Rupiah. Kolom uang di `orders` dilindungi trigger (klien tidak bisa memalsukan total/paid_amount); harga item di-snapshot dari `services` oleh trigger; `paid_amount`/`payment_status` dihitung dari `payments`.
-- **Celah yang diketahui:** karyawan masih bisa mengisi `discount` sembarang pada order. Rencana M3: pindahkan pembuatan order + diskon ke RPC yang memvalidasi (promo/tier).
-- `legacyBranchId` di `AuthContext` hanyalah jembatan sementara untuk halaman karyawan yang masih memakai mockData, hapus di M3.
+- Celah diskon sembarang sudah ditutup di M3a: `orders`, `order_items`, dan `payments` tidak bisa di-insert dari client; pembuatan order dan diskon lewat RPC `create_order` (lihat Catatan M3a).
+- `legacyBranchId` di `AuthContext` hanyalah jembatan sementara untuk halaman karyawan yang masih memakai mockData, hapus di M3b.
 - Komponen shadcn `Input`/`Textarea` sudah diberi `forwardRef` (React 18) supaya cocok dengan `register()` react-hook-form. Komponen lain yang dipakai dengan `register` harus diperlakukan sama.
 
 ## Catatan M2
@@ -119,3 +121,14 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Jabatan (`job_title`) hanya label. Manajer resmi sebuah cabang adalah `branches.manager_id`.
 - Kata sandi: semua pengguna bisa mengganti sendiri (menu profil, memverifikasi kata sandi lama lewat `signInWithPassword` lalu `updateUser`). Admin mengatur ulang kata sandi karyawan lewat Edge Function `reset-staff-password` (tidak bisa untuk akun sendiri). Belum ada: undangan lewat email dan lupa kata sandi lewat email (butuh SMTP; direncanakan sebelum demo ke klien).
 - Header layout memakai `relative z-50` supaya menu profil/notifikasi di atas overlay penutup (z-40). Jangan menurunkannya.
+
+## Catatan M3a
+
+- **Semua penulisan order lewat fungsi database**: `quote_order` (pratinjau harga), `create_order`, `record_payment`. Fungsinya `security definer`, memeriksa peran dan cabang pemanggil, dan `revoke ... from public, anon` (default Supabase memberi execute ke anon, jangan mengandalkannya). Tabel `orders`/`order_items`/`payments` tidak punya grant insert untuk `authenticated`; `orders` hanya bisa di-update kolom `status` dan `notes`.
+- **Aturan diskon**: dipilih SATU yang terbesar antara diskon promo dan diskon tingkat member (tidak digabung). Perhitungan hanya ada di `private.price_order`; UI hanya menampilkan hasil `quote_order`. Kuota promo (`max_usage`) dihitung dari jumlah order ber-`promo_id`, belum dikunci terhadap order bersamaan (cukup untuk skala satu laundry).
+- **Idempotensi**: `create_order` menerima `p_client_key` (uuid dari client). Kunci sama dari kasir sama mengembalikan order yang sudah ada, jadi klik ganda atau koneksi putus tidak membuat order ganda.
+- **Status order**: tahap awal sampai Siap bebas maju/mundur; Selesai hanya dari Siap dan hanya jika lunas (trigger `orders_status_rules`, tidak berlaku untuk skrip SQL role postgres).
+- **Nomor WhatsApp** dinormalkan trigger ke format lokal (`+62812...` menjadi `0812...`); tautan `wa.me` diubah kembali oleh `src/lib/whatsapp.ts`.
+- Statistik pelanggan lewat view `customer_stats` (`security_invoker`): karyawan hanya melihat angka dari cabangnya.
+- Struk dicetak dengan `window.print()`; layout memakai varian `print:` Tailwind untuk menyembunyikan sidebar dan tombol. QR tracking menyusul di M5.
+- Pola RPC di frontend: argumen bertipe `type` (bukan `interface`) supaya cocok dengan tipe `Json` dari Supabase.

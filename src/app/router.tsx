@@ -47,6 +47,7 @@ export const router = createBrowserRouter([
               { index: true, lazy: lazyRoute(() => import('@/pages/employee/EmployeeDashboard')) },
               { path: 'new-order', lazy: lazyRoute(() => import('@/pages/employee/NewOrderPage')) },
               { path: 'orders', lazy: lazyRoute(() => import('@/pages/employee/OrderManagement')) },
+              { path: 'orders/:id', lazy: lazyRoute(() => import('@/pages/employee/OrderReceipt')) },
               { path: 'customers', lazy: lazyRoute(() => import('@/pages/employee/CustomerSearch')) },
               { path: 'summary', lazy: lazyRoute(() => import('@/pages/employee/DailySummary')) },
             ],

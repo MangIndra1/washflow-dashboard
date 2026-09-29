@@ -24,3 +24,6 @@ export const inputClass =
 
 export const selectClass =
   'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all';
+
+export const inputClassEmerald = inputClass.replace('ring-blue-500', 'ring-emerald-500');
+export const selectClassEmerald = selectClass.replace('ring-blue-500', 'ring-emerald-500');
