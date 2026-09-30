@@ -5,6 +5,8 @@ import { Copy, ExternalLink, MessageSquare, StickyNote, Wallet } from 'lucide-re
 
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { NOTIFICATION_LABEL } from '@/features/automation/api';
+import { useOrderNotification } from '@/features/automation/hooks';
 import { trackingUrl } from '@/features/tracking/api';
 import { formatAngka, formatRupiah, formatTanggalJam } from '@/lib/format';
 import { linkWhatsApp } from '@/lib/whatsapp';
@@ -16,6 +18,7 @@ import { PaymentModal } from './PaymentModal';
 export function OrderDetailSheet({ orderId, onClose }: { orderId: string; onClose: () => void }) {
   const detail = useOrderDetail(orderId);
   const logs = useStatusLogs(orderId);
+  const notif = useOrderNotification(orderId).data;
   const [payOpen, setPayOpen] = useState(false);
   const o = detail.data;
   const sisa = o ? Math.max(0, o.total - o.paid_amount) : 0;
@@ -95,6 +98,17 @@ export function OrderDetailSheet({ orderId, onClose }: { orderId: string; onClos
                   ))}
                 </ol>
               </section>
+
+              {notif && (
+                <section data-detail-wa>
+                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Notifikasi WhatsApp</p>
+                  <p className={`text-xs font-medium ${notif.status === 'failed' ? 'text-red-600' : notif.status === 'sent' ? 'text-emerald-700' : 'text-slate-700'}`}>
+                    {NOTIFICATION_LABEL[notif.status]}{notif.status === 'sent' && notif.sent_at ? `, ${formatTanggalJam(notif.sent_at)}` : ''}
+                  </p>
+                  {notif.status === 'failed' && <p className="text-xs text-slate-500 mt-1">Hubungi pelanggan lewat tombol WhatsApp di bawah.{notif.error ? ` Penyebab: ${notif.error}` : ''}</p>}
+                  {notif.status === 'pending' && notif.attempts > 0 && <p className="text-xs text-slate-500 mt-1">Percobaan ke-{notif.attempts} gagal, akan dicoba lagi.</p>}
+                </section>
+              )}
 
               <div className="flex flex-wrap gap-2 pt-1">
                 {sisa > 0 && (

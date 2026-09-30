@@ -8,6 +8,27 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      automation_settings: {
+        Row: {
+          id: boolean;
+          wa_notify_enabled: boolean;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          wa_notify_enabled?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          wa_notify_enabled?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       branches: {
         Row: {
           id: string;
@@ -193,6 +214,56 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          order_id: string;
+          kind: string;
+          status: string;
+          attempts: number;
+          next_attempt_at: string;
+          locked_at: string | null;
+          wa_message_id: string | null;
+          error: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          kind?: string;
+          status?: string;
+          attempts?: number;
+          next_attempt_at?: string;
+          locked_at?: string | null;
+          wa_message_id?: string | null;
+          error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          kind?: string;
+          status?: string;
+          attempts?: number;
+          next_attempt_at?: string;
+          locked_at?: string | null;
+          wa_message_id?: string | null;
+          error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       order_items: {
         Row: {

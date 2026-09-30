@@ -1,0 +1,327 @@
+{
+  "name": "WashFlow - WhatsApp pesanan siap diambil",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WashFlow: notifikasi WhatsApp saat pesanan siap\n\n**Sebelum menyalakan:**\n1. Buka node **Config** dan isi semua nilai bertanda GANTI.\n2. Buat 2 credential (lihat README): *Supabase API* (memakai service_role key) dan *Bearer Auth* (token WhatsApp Cloud API).\n3. Pasang credential itu di node **Ambil antrean**, **Kirim WhatsApp**, **Tandai terkirim**, **Tandai gagal**.\n4. Uji dengan **Execute workflow** memakai nomor uji Meta, baru **Active**.\n\nAlur: cek antrean tiap menit, kirim template, lapor hasil ke database. Pengiriman ulang dan batas percobaan diatur oleh database.",
+        "height": 300,
+        "width": 420,
+        "color": 4
+      },
+      "name": "Petunjuk",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Tiap 1 menit",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0",
+              "name": "supabaseUrl",
+              "value": "https://GANTI-PROJECT-ID.supabase.co",
+              "type": "string"
+            },
+            {
+              "id": "c1",
+              "name": "appUrl",
+              "value": "https://GANTI-DOMAIN-APLIKASI-ANDA.com",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "phoneNumberId",
+              "value": "GANTI_PHONE_NUMBER_ID",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "templateName",
+              "value": "pesanan_siap_diambil",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "templateLang",
+              "value": "id",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "waApiVersion",
+              "value": "v21.0",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "waBaseUrl",
+              "value": "https://graph.facebook.com",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "batchSize",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabaseUrl.replace(/\\/+$/, '') }}/rest/v1/rpc/claim_notifications",
+        "authentication": "predefinedCredentialType",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { p_limit: $('Config').first().json.batchSize } }}",
+        "options": {
+          "timeout": 20000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Ambil antrean",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        140
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ME",
+          "name": "WashFlow Supabase"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Menyusun isi template WhatsApp dari satu notifikasi. Tidak ada pemanggilan jaringan di sini.\nconst c = $('Config').first().json;\nconst n = $input.item.json;\nconst satu = (t) => String(t ?? '').replace(/[\\r\\n\\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();   // WhatsApp menolak baris baru di parameter template\nconst rupiah = (x) => 'Rp ' + String(Math.round(Number(x))).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');\n\nconst nama = satu(n.customer_first_name || 'Pelanggan').slice(0, 40);\nconst info = Number(n.sisa) > 0 ? 'Sisa tagihan ' + rupiah(n.sisa) + '.' : 'Pesanan sudah lunas.';\nconst url = String(c.appUrl).replace(/\\/+$/, '') + '/track/' + n.track_token;\n\n// Urutan parameter HARUS sama dengan variabel {{1}}..{{5}} pada template di Meta (lihat README).\nconst params = [nama, n.order_code, satu(n.branch_name), info, url].map((text) => ({ type: 'text', text }));\n\nreturn {\n  json: {\n    notification_id: n.notification_id,\n    order_code: n.order_code,\n    wa: {\n      messaging_product: 'whatsapp',\n      to: n.phone,\n      type: 'template',\n      template: { name: c.templateName, language: { code: c.templateLang }, components: [{ type: 'body', parameters: params }] },\n    },\n  },\n};\n"
+      },
+      "name": "Build message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.waBaseUrl }}/{{ $('Config').first().json.waApiVersion }}/{{ $('Config').first().json.phoneNumberId }}/messages",
+        "authentication": "genericCredentialType",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.wa }}",
+        "options": {
+          "timeout": 20000
+        },
+        "genericAuthType": "httpBearerAuth"
+      },
+      "name": "Kirim WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        140
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "REPLACE_ME",
+          "name": "WhatsApp Cloud API token"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabaseUrl.replace(/\\/+$/, '') }}/rest/v1/rpc/complete_notification",
+        "authentication": "predefinedCredentialType",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { p_id: $('Build message').item.json.notification_id, p_ok: true, p_wa_message_id: $json.messages?.[0]?.id ?? null } }}",
+        "options": {
+          "timeout": 20000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Tandai terkirim",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        40
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ME",
+          "name": "WashFlow Supabase"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Menentukan apakah kegagalan perlu dicoba ulang.\n// 131026 = nomor bukan pengguna WhatsApp / tidak dapat dikirimi, 131030 = nomor tidak ada di daftar penerima uji (mode sandbox),\n// 132000 / 132001 / 132012 = template tidak cocok dengan kiriman (jumlah variabel, nama, atau format).\n// Semuanya tidak akan berhasil jika diulang, jadi langsung ditandai gagal. Yang lain dicoba ulang oleh database (maks 3 kali).\nconst src = $('Build message').item.json;\nconst raw = JSON.stringify($json.error ?? $json);\nconst permanent = /131026|131030|132000|132001|132012/.test(raw);\nconst msg = String($json.error?.description ?? $json.error?.message ?? raw).slice(0, 400);\nreturn { json: { notification_id: src.notification_id, error: msg, retry: !permanent } };\n"
+      },
+      "name": "Klasifikasi error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabaseUrl.replace(/\\/+$/, '') }}/rest/v1/rpc/complete_notification",
+        "authentication": "predefinedCredentialType",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { p_id: $json.notification_id, p_ok: false, p_error: $json.error, p_retry: $json.retry } }}",
+        "options": {
+          "timeout": 20000
+        },
+        "nodeCredentialType": "supabaseApi"
+      },
+      "name": "Tandai gagal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        260
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_ME",
+          "name": "WashFlow Supabase"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "Tiap 1 menit": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Ambil antrean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil antrean": {
+      "main": [
+        [
+          {
+            "node": "Build message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build message": {
+      "main": [
+        [
+          {
+            "node": "Kirim WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kirim WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Tandai terkirim",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Klasifikasi error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Klasifikasi error": {
+      "main": [
+        [
+          {
+            "node": "Tandai gagal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

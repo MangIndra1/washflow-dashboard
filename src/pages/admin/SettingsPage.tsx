@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ImageUp, Plus, Trash2, Wallet } from 'lucide-react';
+import { ImageUp, MessageCircle, Plus, Trash2, Wallet } from 'lucide-react';
 
 import { QrCode } from '@/components/shared/QrCode';
 import { ErrorPanel } from '@/components/shared/QueryStatus';
 import { inputClass } from '@/components/shared/FormField';
 import { useAuth } from '@/features/auth/AuthContext';
+import { useNotificationSummary, useSaveWaNotify, useWaNotifyEnabled } from '@/features/automation/hooks';
 import type { BankAccount, PaymentInfo } from '@/features/payment-info/api';
 import { usePaymentInfo, useSavePaymentInfo } from '@/features/payment-info/hooks';
 import { pesanError } from '@/lib/errors';
@@ -43,6 +44,57 @@ function bankError(b: BankAccount): string | null {
   if (!b.bank.trim()) return 'Isi nama bank.';
   if (!/^[\d\s-]{5,30}$/.test(b.number.trim())) return 'Nomor rekening hanya angka (5 sampai 30 digit).';
   return null;
+}
+
+/** Saklar notifikasi WhatsApp otomatis. Tersimpan langsung (tidak ikut tombol Simpan info pembayaran). */
+function WaNotifySection() {
+  const { currentUser } = useAuth();
+  const enabled = useWaNotifyEnabled();
+  const save = useSaveWaNotify();
+  const summary = useNotificationSummary(enabled.data === true);
+  const on = enabled.data === true;
+
+  const toggle = async () => {
+    if (!currentUser || enabled.data === undefined) return;
+    try {
+      await save.mutateAsync({ enabled: !on, userId: currentUser.id });
+      toast.success(!on ? 'Notifikasi WhatsApp diaktifkan.' : 'Notifikasi WhatsApp dimatikan.');
+    } catch (e) {
+      toast.error(pesanError(e, 'Gagal mengubah pengaturan.'));
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4" data-wa-notify>
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center"><MessageCircle className="h-5 w-5 text-emerald-600" /></div>
+        <div className="flex-1">
+          <h3 className="text-slate-900">Notifikasi WhatsApp Otomatis</h3>
+          <p className="text-xs text-slate-400">Kirim pesan ke pelanggan saat pesanan berstatus Siap Diambil.</p>
+        </div>
+        <button
+          type="button" role="switch" aria-checked={on} aria-label="Notifikasi WhatsApp otomatis"
+          disabled={enabled.isPending || enabled.isError || save.isPending} onClick={() => void toggle()}
+          className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-50 ${on ? 'bg-emerald-600' : 'bg-slate-300'}`}
+        >
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      {enabled.isError && <p className="text-xs text-red-600" role="alert">Pengaturan tidak dapat dimuat.</p>}
+      <p className="text-sm text-slate-600">
+        Pesan dikirim oleh workflow n8n lewat WhatsApp Cloud API resmi, bukan dari aplikasi ini. Saklar ini hanya menentukan apakah pesanan yang siap dimasukkan ke antrean.
+        Aktifkan setelah workflow n8n terpasang, dan pastikan pelanggan tahu nomornya dipakai untuk kabar pesanan.
+      </p>
+      {on && (
+        <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-600" data-wa-summary>
+          {summary.isPending ? 'Memuat ringkasan...' : summary.isError ? 'Ringkasan tidak dapat dimuat.' : (
+            <>24 jam terakhir: <b>{summary.data.sent}</b> terkirim, <b>{summary.data.pending}</b> menunggu, <b>{summary.data.failed}</b> gagal.
+              {summary.data.pending > 0 && summary.data.sent === 0 && ' Bila menunggu terus, periksa apakah workflow n8n aktif.'}</>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -112,7 +164,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-slate-900">Pengaturan</h1>
-        <p className="text-slate-500 text-sm mt-1">Informasi yang tampil di struk, modal pembayaran, dan halaman pelacakan pelanggan.</p>
+        <p className="text-slate-500 text-sm mt-1">Info pembayaran untuk struk dan halaman pelacakan pelanggan, serta otomasi WhatsApp.</p>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
@@ -187,6 +239,8 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      <WaNotifySection />
     </div>
   );
 }

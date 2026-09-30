@@ -91,9 +91,9 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
   - [x] **M3a**: pelanggan (cari/tambah/ubah), order baru multi-layanan lewat RPC, pembayaran (lunas/DP/nanti + pembayaran susulan), struk cetak + tautan WhatsApp.
   - [x] **M3b**: papan pesanan (kanban) nyata, dasbor karyawan, ringkasan harian (CSV + cetak), lonceng notifikasi nyata, `legacyBranchId`/mockData karyawan dihapus.
 - [x] **M4**: Dasbor admin dan Laporan Keuangan dari query nyata (RPC `admin_report`), ekspor Excel per periode/cabang, lonceng admin nyata.
-- [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
+- [x] **M5**: Halaman `/track/:token` publik + QR di struk, notifikasi WhatsApp lewat n8n saat status "siap". *(Fitur pembeda utama. Bagian WhatsApp belum diuji terhadap WhatsApp Cloud API sungguhan.)*
   - [x] Panel detail pesanan di Papan Pesanan, info pembayaran (QRIS + rekening) di modal bayar/struk/tracking, token + halaman `/track/:token` + QR tracking di struk.
-  - [ ] Workflow n8n WhatsApp (template terpisah, WhatsApp Cloud API resmi).
+  - [x] Antrean notifikasi (outbox) + workflow n8n WhatsApp Cloud API resmi di `automation/n8n/`. Uji dengan nomor uji Meta sebelum diserahkan ke klien.
 - [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait).
 - [ ] **M7** Deploy, case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
 
@@ -175,3 +175,11 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - **Riwayat Pesanan** (`/employee/history`, `pages/employee/OrderHistory.tsx`): semua pesanan cabang dengan pencarian (kode, nama, telepon), filter status (default Selesai), pembayaran, tanggal dibuat (`period.ts`, tanpa batas 92 hari), 25 baris per halaman dari database (`fetchOrderHistory`, `count: 'exact'`). Klik baris membuka `OrderDetailSheet`. RLS tetap membatasi ke cabang karyawan.
 - Pencarian: teks dibersihkan `sanitizeSearch` (hanya huruf, angka, spasi, `+`, `-`) sebelum masuk filter PostgREST; nama/telepon dicari lewat query `customers` terpisah (maks 100 id) lalu digabung dengan `code.ilike` lewat `or`. Hasil pencarian di papan yang kosong menampilkan tautan ke riwayat dengan kata kunci yang sama.
 - Belum ada halaman riwayat serupa untuk admin (admin memakai Laporan Keuangan dan ekspor Excel).
+
+## Catatan M5b: notifikasi WhatsApp (n8n)
+
+- **Outbox, bukan webhook**: trigger `orders_notify_ready` (migrasi `20260929000700_m5b_notifications.sql`) menaruh satu baris di `notifications` saat pesanan menjadi Siap (`unique (order_id, kind)`, jadi tidak pernah dikirim ulang meski dimundurkan lalu Siap lagi). Hanya berjalan bila `automation_settings.wa_notify_enabled` = true (bawaan MATI; admin mengubahnya di Pengaturan).
+- **Dua fungsi khusus `service_role`** (dicabut dari public, anon, authenticated; admin aplikasi pun tidak bisa memanggil): `claim_notifications(p_limit)` (FOR UPDATE SKIP LOCKED, melewati yang kedaluwarsa > 6 jam atau pesanan sudah tidak Siap, mengambil kembali `sending` macet > 10 menit, mengembalikan telepon format 62xxx) dan `complete_notification(id, ok, wamid, error, retry)` (hanya berlaku untuk baris `sending`; gagal dicoba ulang dengan jeda 5 menit x percobaan, maksimal 3). Keduanya mengembalikan JSON valid (jangan diubah ke `text`: node HTTP n8n menolak balasan non-JSON).
+- **Workflow**: `automation/n8n/washflow-wa-siap-diambil.json` + `README.md` (template Meta, credential, uji, troubleshooting). Nilai yang harus diisi ada di node Config. Service role key hanya dimasukkan langsung ke credential n8n, tidak pernah ke repo atau frontend.
+- **UI**: saklar dan ringkasan 24 jam di `/admin/settings`, status notifikasi per pesanan di `OrderDetailSheet` (Menunggu, Terkirim, Gagal, Dilewati). Staf hanya bisa MELIHAT `notifications` (RLS mengikuti visibilitas pesanan).
+- **Pengujian**: 40 uji SQL (akses, RLS, klaim, retry, kedaluwarsa), 16 uji UI, dan n8n 2.x sungguhan menjalankan workflow terhadap database lokal + server WhatsApp tiruan. Belum ada uji ke WhatsApp Cloud API sungguhan.
