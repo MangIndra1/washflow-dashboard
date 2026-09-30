@@ -6,7 +6,7 @@ Bagian portofolio **Digital Product Mang In**.
 
 ## Status proyek
 
-**Dalam pengembangan.** UI/UX dari Figma Make sedang dihubungkan ke database sungguhan. Selesai: skema database + RLS + login Supabase + route guard per role (M1). Halaman lain masih memakai data contoh sementara. Lihat `CLAUDE.md` untuk konteks dan roadmap lengkap.
+**Fitur inti selesai (M0 sampai M5), siap di-deploy dan didemokan.** Alur lengkap sudah memakai database sungguhan: pelanggan, pesanan multi-layanan, pembayaran (termasuk DP), papan pesanan (tampilan Ringkas dan Rinci), riwayat, struk dengan QR pelacakan, halaman pelacakan publik, dasbor dan laporan admin, ekspor Excel, serta notifikasi WhatsApp lewat n8n (`automation/n8n/`). Inventaris, Keanggotaan, Promo, dan Komisi masih ditandai "Segera hadir" (M6). Lihat `CLAUDE.md` untuk konteks dan roadmap lengkap.
 
 ## Stack
 
@@ -48,6 +48,22 @@ npm run typecheck   # cek tipe TypeScript tanpa build
 npm run preview     # preview hasil build
 npm run db:types    # regenerasi src/types/database.ts dari database (jalankan di Git Bash)
 ```
+
+## Deploy (Vercel)
+
+Aplikasi ini adalah SPA statis; backend-nya Supabase. Satu project Supabase + satu deploy per klien.
+
+1. Siapkan project Supabase (langkah "Menjalankan secara lokal" nomor 3 sampai 5). Untuk klien: `db push --include-seed` (bersih), lalu `bootstrap-admin.sql`. Untuk demo portofolio: project terpisah yang diisi `supabase/demo/`.
+2. Di Vercel: Add New > Project > impor repo GitHub. Framework Vite terdeteksi; `vercel.json` sudah mengatur build, rewrite SPA, dan header keamanan.
+3. Environment Variables (Production dan Preview): `VITE_SUPABASE_URL` dan `VITE_SUPABASE_PUBLISHABLE_KEY` (hanya publishable key; jangan pernah secret/service_role). Deploy.
+4. Di Supabase > Authentication > URL Configuration: isi **Site URL** dengan alamat Vercel (mis. `https://washflow-xxx.vercel.app`) dan tambahkan ke Redirect URLs.
+5. Uji dengan alamat asli, bukan hanya `npm run dev`:
+   - login admin, buat cabang, layanan, dan karyawan (tombol Tambah Karyawan butuh Edge Function sudah di-deploy);
+   - buat satu pesanan, cetak struk, lalu **buka tautan pelacakan langsung di tab baru atau ponsel** (`/track/<token>`). Kalau muncul 404, rewrite SPA belum aktif (Netlify memakai `public/_redirects`, Vercel memakai `vercel.json`);
+   - pastikan halaman pelacakan tidak meminta login.
+6. Otomasi WhatsApp: ikuti `automation/n8n/README.md` setelah aplikasi ter-deploy (tautan pelacakan di pesan memakai alamat ini).
+
+Catatan: header `Referrer-Policy: no-referrer` mencegah token pelacakan bocor lewat header Referer ke situs lain. Content-Security-Policy belum dipasang (perlu disesuaikan dengan Supabase dan font); kandidat hardening sebelum dipakai klien besar.
 
 ## Struktur folder
 

@@ -95,7 +95,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
   - [x] Panel detail pesanan di Papan Pesanan, info pembayaran (QRIS + rekening) di modal bayar/struk/tracking, token + halaman `/track/:token` + QR tracking di struk.
   - [x] Antrean notifikasi (outbox) + workflow n8n WhatsApp Cloud API resmi di `automation/n8n/`. Uji dengan nomor uji Meta sebelum diserahkan ke klien.
 - [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait). Sementara keempat rute admin menampilkan `ComingSoon` (menu ditandai Segera); file halaman lama (`InventoryManagement`, dll., masih mockData) dipertahankan untuk dipakai ulang dan akan diganti saat M6.
-- [ ] **M7** Deploy, case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
+- [ ] **M7** Deploy (persiapan selesai: `vercel.json` rewrite SPA + header keamanan, `public/_redirects`, panduan di README; tinggal deploy oleh pemilik akun Vercel), case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
 
 ## Utang teknis yang diketahui (dari review awal)
 
