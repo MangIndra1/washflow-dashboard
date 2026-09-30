@@ -139,7 +139,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 
 - **Tanpa realtime**: papan, dasbor, dan lonceng memakai polling TanStack Query (papan dan lonceng 30 dtk, dasbor/ringkasan 60 dtk). Realtime Supabase bisa ditambah nanti bila ada kebutuhan nyata.
 - `checkMove` di `features/orders/api.ts` hanya cermin aturan trigger `orders_status_rules` untuk memberi pesan cepat di UI; server tetap yang berwenang. Selesai dari kartu belum lunas membuka `PaymentModal`, dan pesanan otomatis diselesaikan hanya jika pembayaran melunasi sisa.
-- Kartu Selesai terkunci (tidak bisa mundur, tidak bisa diseret). Kolom Selesai hanya memuat 2 hari terakhir.
+- Kartu Selesai terkunci (tidak bisa mundur, tidak bisa diseret). Kolom Selesai di papan hanya memuat pesanan yang selesai HARI INI (jam lokal perangkat); yang lebih lama ada di Riwayat Pesanan.
 - Batas hari (dasbor/ringkasan) memakai jam lokal perangkat lewat `dayRange()`. Pendapatan = pembayaran yang DITERIMA hari itu (`payments.paid_at`), bukan total pesanan; piutang = sisa tagihan pesanan yang belum selesai.
 - `lib/csv.ts`: pemisah titik koma dan BOM UTF-8 supaya terbuka benar di Excel Indonesia; sel yang diawali `= + - @` diberi `'` di depan (mencegah formula injection).
 - Migrasi `20260929000400_m3b_indexes.sql` menambah indeks untuk query harian. Jalankan `npx supabase db push`.
@@ -168,3 +168,10 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - **Deploy**: rute `/track/:token` adalah rute SPA, host WAJIB mengarahkan semua path ke `index.html` (Vercel/Netlify rewrite). Uji dulu dengan membuka tautan langsung, bukan hanya lewat navigasi.
 - **Perbaikan penting**: `AuthProvider` dulu memanggil `queryClient.clear()` saat tidak ada sesi, sehingga query halaman publik yang sedang berjalan menggantung selamanya. Sekarang cache dikosongkan hanya bila sebelumnya ada pengguna (logout/ganti akun).
 - **WhatsApp otomatis**: gunakan WhatsApp Cloud API resmi (template message). Jangan memakai library tidak resmi (mis. sesi WhatsApp Web) untuk klien berbayar: akun bisa diblokir. Belum bisa diuji terhadap WhatsApp sungguhan dari lingkungan pengembangan ini.
+
+## Catatan Papan dan Riwayat Pesanan
+
+- **Papan = antrean kerja**: kolom aktif (Diterima sampai Siap Diambil) memuat semua pesanan belum selesai tanpa batas tanggal (maks 500, ada peringatan bila tercapai). Kolom Selesai hanya hari ini. Tinggi papan dibatasi (`calc(100vh - 19rem)`), tiap kolom scroll sendiri sehingga halaman tidak memanjang.
+- **Riwayat Pesanan** (`/employee/history`, `pages/employee/OrderHistory.tsx`): semua pesanan cabang dengan pencarian (kode, nama, telepon), filter status (default Selesai), pembayaran, tanggal dibuat (`period.ts`, tanpa batas 92 hari), 25 baris per halaman dari database (`fetchOrderHistory`, `count: 'exact'`). Klik baris membuka `OrderDetailSheet`. RLS tetap membatasi ke cabang karyawan.
+- Pencarian: teks dibersihkan `sanitizeSearch` (hanya huruf, angka, spasi, `+`, `-`) sebelum masuk filter PostgREST; nama/telepon dicari lewat query `customers` terpisah (maks 100 id) lalu digabung dengan `code.ilike` lewat `or`. Hasil pencarian di papan yang kosong menampilkan tautan ke riwayat dengan kata kunci yang sama.
+- Belum ada halaman riwayat serupa untuk admin (admin memakai Laporan Keuangan dan ekspor Excel).

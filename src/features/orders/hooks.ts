@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { customerKeys } from '@/features/customers/hooks';
 import {
-  createOrder, fetchActiveOrders, fetchStatusLogs, fetchOrderDetail, fetchOrdersInRange, fetchPaymentsInRange, fetchRecentCompleted,
+  createOrder, fetchActiveOrders, fetchStatusLogs, fetchOrderDetail, fetchOrdersInRange, fetchPaymentsInRange, fetchCompletedToday, fetchOrderHistory, type HistoryQuery,
   quoteOrder, recordPayment, updateOrderStatus, type BoardOrder, type CartLine, type OrderStatus, type PaymentMethod,
 } from './api';
 
@@ -55,8 +55,12 @@ export function useActiveOrders() {
   return useQuery({ queryKey: ['orders', 'active'], queryFn: fetchActiveOrders, refetchInterval: REFRESH_MS });
 }
 
-export function useRecentCompleted() {
-  return useQuery({ queryKey: ['orders', 'completed-recent'], queryFn: () => fetchRecentCompleted(2), refetchInterval: REFRESH_MS });
+export function useCompletedToday() {
+  return useQuery({ queryKey: ['orders', 'completed-today'], queryFn: fetchCompletedToday, refetchInterval: REFRESH_MS });
+}
+
+export function useOrderHistory(f: HistoryQuery) {
+  return useQuery({ queryKey: ['orders', 'history', f], queryFn: () => fetchOrderHistory(f), placeholderData: keepPreviousData });
 }
 
 /** Awal dan akhir hari ini menurut jam perangkat (kasir bekerja di zona waktunya sendiri). */

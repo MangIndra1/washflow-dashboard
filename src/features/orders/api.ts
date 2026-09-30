@@ -117,14 +117,55 @@ export async function fetchActiveOrders(): Promise<BoardOrder[]> {
   return data as unknown as BoardOrder[];
 }
 
-/** Pesanan yang selesai dalam N hari terakhir, untuk kolom Selesai di papan. */
-export async function fetchRecentCompleted(days = 2): Promise<BoardOrder[]> {
-  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+/** Pesanan yang selesai sejak pukul 00.00 hari ini (jam perangkat), untuk kolom Selesai di papan. Yang lebih lama ada di Riwayat Pesanan. */
+export async function fetchCompletedToday(): Promise<BoardOrder[]> {
+  const t = new Date();
+  const since = new Date(t.getFullYear(), t.getMonth(), t.getDate()).toISOString();
   const { data, error } = await supabase
     .from('orders').select(BOARD_SELECT).eq('status', 'completed').gte('completed_at', since)
-    .order('completed_at', { ascending: false }).order('code', { ascending: false }).limit(100);
+    .order('completed_at', { ascending: false }).order('code', { ascending: false }).limit(200);
   if (error) throw error;
   return data as unknown as BoardOrder[];
+}
+
+export const HISTORY_PAGE_SIZE = 25;
+
+export interface HistoryQuery {
+  q: string;
+  status: OrderStatus | 'all';
+  payment: Tables<'orders'>['payment_status'] | 'all';
+  /** Batas created_at (ISO); from inklusif, to eksklusif. Kosong = tanpa batas. */
+  from: string;
+  to: string;
+  page: number;
+}
+
+/** Hanya huruf, angka, spasi, tanda hubung dan plus: mencegah karakter khusus filter PostgREST (koma, kurung, titik, persen, bintang). */
+export function sanitizeSearch(q: string): string {
+  return q.replace(/[^\p{L}\p{N}\s+-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+
+/** Riwayat semua pesanan dengan filter dan halaman (RLS membatasi karyawan ke cabangnya). */
+export async function fetchOrderHistory(f: HistoryQuery): Promise<{ rows: BoardOrder[]; count: number }> {
+  const q = sanitizeSearch(f.q);
+  let customerIds: string[] = [];
+  if (q) {
+    const { data, error } = await supabase.from('customers').select('id').or(`name.ilike.*${q}*,phone.ilike.*${q}*`).limit(100);
+    if (error) throw error;
+    customerIds = (data ?? []).map((c) => c.id);
+  }
+  let query = supabase.from('orders').select(BOARD_SELECT, { count: 'exact' });
+  if (q) query = query.or([`code.ilike.*${q}*`, ...(customerIds.length ? [`customer_id.in.(${customerIds.join(',')})`] : [])].join(','));
+  if (f.status !== 'all') query = query.eq('status', f.status);
+  if (f.payment !== 'all') query = query.eq('payment_status', f.payment);
+  if (f.from) query = query.gte('created_at', f.from);
+  if (f.to) query = query.lt('created_at', f.to);
+  const start = f.page * HISTORY_PAGE_SIZE;
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false }).order('code', { ascending: false })
+    .range(start, start + HISTORY_PAGE_SIZE - 1);
+  if (error) throw error;
+  return { rows: data as unknown as BoardOrder[], count: count ?? 0 };
 }
 
 /** Pesanan yang dibuat atau diselesaikan dalam rentang [from, to). */

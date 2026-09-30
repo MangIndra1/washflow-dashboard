@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { Search, AlertCircle, Clock, ChevronRight, ChevronLeft, Phone, MessageSquare, StickyNote } from 'lucide-react';
 
@@ -8,7 +9,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { checkMove, isOverdue, nextStatus, prevStatus, type BoardOrder, type OrderStatus } from '@/features/orders/api';
 import { OrderDetailSheet } from '@/features/orders/OrderDetailSheet';
 import { PaymentModal } from '@/features/orders/PaymentModal';
-import { useActiveOrders, useRecentCompleted, useUpdateOrderStatus } from '@/features/orders/hooks';
+import { useActiveOrders, useCompletedToday, useUpdateOrderStatus } from '@/features/orders/hooks';
 import { pesanError } from '@/lib/errors';
 import { formatRupiah, formatTanggalJam } from '@/lib/format';
 import { linkWhatsApp } from '@/lib/whatsapp';
@@ -40,7 +41,7 @@ function pesanSiap(o: BoardOrder): string {
 export default function OrderManagement() {
   const { currentUser } = useAuth();
   const active = useActiveOrders();
-  const completed = useRecentCompleted();
+  const completed = useCompletedToday();
   const update = useUpdateOrderStatus();
 
   const [search, setSearch] = useState('');
@@ -128,10 +129,19 @@ export default function OrderManagement() {
         </select>
       </div>
 
+      {!isLoading && !error && search.trim() && filtered.length === 0 && (
+        <p className="text-sm text-slate-500" data-search-history>
+          Tidak ada di papan. <Link to={`/employee/history?q=${encodeURIComponent(search.trim())}`} className="font-medium text-emerald-700 hover:underline">Cari di riwayat pesanan</Link>
+        </p>
+      )}
+      {(active.data?.length ?? 0) >= 500 && (
+        <p className="text-xs text-amber-700" data-board-limit>Papan menampilkan 500 pesanan aktif terdekat batas waktunya. Selesaikan atau cari pesanan lain lewat riwayat.</p>
+      )}
+
       {error ? (
         <ErrorPanel message={pesanError(error, 'Gagal memuat pesanan.')} onRetry={() => { void active.refetch(); void completed.refetch(); }} />
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '70vh' }}>
+        <div className="flex gap-4 overflow-x-auto pb-4" style={{ height: 'calc(100vh - 19rem)', minHeight: '26rem' }}>
           {COLUMNS.map((col) => {
             const colOrders = filtered.filter((o) => o.status === col.status);
             const isDragOver = dragOverCol === col.status;
@@ -139,7 +149,7 @@ export default function OrderManagement() {
               <div
                 key={col.status}
                 data-column={col.status}
-                className={`flex-shrink-0 w-72 flex flex-col rounded-xl border-2 transition-all ${isDragOver ? 'border-emerald-400 bg-emerald-50/50' : `${col.border} ${col.bg}`}`}
+                className={`flex-shrink-0 w-72 h-full flex flex-col rounded-xl border-2 transition-all ${isDragOver ? 'border-emerald-400 bg-emerald-50/50' : `${col.border} ${col.bg}`}`}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCol(col.status); }}
                 onDrop={(e) => handleDrop(e, col.status)}
                 onDragLeave={() => setDragOverCol(null)}
@@ -148,12 +158,17 @@ export default function OrderManagement() {
                   <div className="flex items-center gap-2">
                     <div className={`h-2.5 w-2.5 rounded-full ${col.dot}`} />
                     <span className="text-sm font-semibold text-slate-700">{col.label}</span>
-                    {col.status === 'completed' && <span className="text-xs text-slate-400">2 hari terakhir</span>}
+                    {col.status === 'completed' && <span className="text-xs text-slate-400">hari ini</span>}
                   </div>
-                  <span className="h-6 min-w-6 rounded-full bg-white/80 flex items-center justify-center text-xs font-bold text-slate-700 px-1.5">{colOrders.length}</span>
+                  <div className="flex items-center gap-2">
+                    {col.status === 'completed' && (
+                      <Link to="/employee/history" className="text-xs font-medium text-emerald-700 hover:underline" data-history-link>Riwayat</Link>
+                    )}
+                    <span className="h-6 min-w-6 rounded-full bg-white/80 flex items-center justify-center text-xs font-bold text-slate-700 px-1.5">{colOrders.length}</span>
+                  </div>
                 </div>
 
-                <div className="flex-1 p-3 space-y-3 overflow-y-auto">
+                <div className="flex-1 min-h-0 p-3 space-y-3 overflow-y-auto">
                   {isLoading && (
                     <div className="h-28 animate-pulse rounded-xl bg-white/70" role="status" aria-label="Memuat pesanan" />
                   )}

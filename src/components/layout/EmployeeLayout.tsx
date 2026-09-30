@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router';
 import {
-  LayoutDashboard, Plus, Kanban, Search, FileText,
+  LayoutDashboard, Plus, Kanban, Search, FileText, History,
   LogOut, Bell, ChevronDown, KeyRound, Waves, Menu, X,
   AlertCircle, CheckCircle, Wallet,
 } from 'lucide-react';
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/employee', label: 'Dasbor', icon: LayoutDashboard, exact: true },
   { to: '/employee/new-order', label: 'Pesanan Baru', icon: Plus },
   { to: '/employee/orders', label: 'Papan Pesanan', icon: Kanban },
+  { to: '/employee/history', label: 'Riwayat Pesanan', icon: History },
   { to: '/employee/customers', label: 'Pelanggan', icon: Search },
   { to: '/employee/summary', label: 'Ringkasan Harian', icon: FileText },
 ];
