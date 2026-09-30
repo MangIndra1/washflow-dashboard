@@ -176,6 +176,15 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Pencarian: teks dibersihkan `sanitizeSearch` (hanya huruf, angka, spasi, `+`, `-`) sebelum masuk filter PostgREST; nama/telepon dicari lewat query `customers` terpisah (maks 100 id) lalu digabung dengan `code.ilike` lewat `or`. Hasil pencarian di papan yang kosong menampilkan tautan ke riwayat dengan kata kunci yang sama.
 - Belum ada halaman riwayat serupa untuk admin (admin memakai Laporan Keuangan dan ekspor Excel).
 
+## Catatan mode status sederhana (Papan Pesanan)
+
+- **Alasan**: kasir laundry jarang berdiri di depan layar, jadi status yang harus digeser tiap tahap (Dicuci, Dikeringkan, Disetrika) cepat ditinggalkan. Status yang tidak dipercaya merusak pelacakan, laporan, dan WhatsApp.
+- **Tampilan Ringkas (bawaan)**: 4 kolom Diterima, Diproses, Siap Diambil, Selesai. Diproses = gabungan `washing`, `drying`, `ironing`. Ini murni tampilan: database tetap memakai enum 6 status, jadi mode Rinci (6 kolom) tetap tersedia lewat tombol di pojok papan. Pilihan mode disimpan per perangkat di `localStorage` (`wf.board.mode`), bukan di database.
+- Di Ringkas: seret ke Diproses mengubah status ke `washing` (tidak berubah bila sudah di salah satu status proses); tombol kartu Proses, Siap, Selesaikan; mundur dari Siap ke `ironing`, dari Diproses ke `received`.
+- **Aksi cepat Siap**: centang beberapa kartu (atau "Semua" di header kolom) lalu "Tandai Siap Diambil" (satu per satu, gagal satu tidak menghentikan yang lain), dan kotak "Ketik kode lalu Enter" (kode lengkap, atau angka belakangnya minimal 3 karakter bila unik). Tanpa perubahan database; aturan trigger dan notifikasi WhatsApp berlaku seperti biasa.
+- Sengaja TIDAK ada perpindahan status otomatis berdasarkan waktu (status palsu lebih merugikan daripada status kasar).
+- Logika mode ada di `pages/employee/OrderManagement.tsx` (`COLUMNS_RINGKAS`, `langkahNext`, `langkahPrev`). Klik pada `input`/`label` di kartu tidak membuka panel detail.
+
 ## Catatan M5b: notifikasi WhatsApp (n8n)
 
 - **Outbox, bukan webhook**: trigger `orders_notify_ready` (migrasi `20260929000700_m5b_notifications.sql`) menaruh satu baris di `notifications` saat pesanan menjadi Siap (`unique (order_id, kind)`, jadi tidak pernah dikirim ulang meski dimundurkan lalu Siap lagi). Hanya berjalan bila `automation_settings.wa_notify_enabled` = true (bawaan MATI; admin mengubahnya di Pengaturan).

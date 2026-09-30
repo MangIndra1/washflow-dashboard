@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
-import { Search, AlertCircle, Clock, ChevronRight, ChevronLeft, Phone, MessageSquare, StickyNote } from 'lucide-react';
+import { Search, AlertCircle, Clock, ChevronRight, ChevronLeft, Phone, MessageSquare, StickyNote, CheckCheck, ScanLine } from 'lucide-react';
 
 import { ErrorPanel } from '@/components/shared/QueryStatus';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -14,14 +14,52 @@ import { pesanError } from '@/lib/errors';
 import { formatRupiah, formatTanggalJam } from '@/lib/format';
 import { linkWhatsApp } from '@/lib/whatsapp';
 
-const COLUMNS: { status: OrderStatus; label: string; bg: string; border: string; dot: string }[] = [
-  { status: 'received', label: 'Diterima',     bg: 'bg-slate-100',  border: 'border-slate-300',   dot: 'bg-slate-500' },
-  { status: 'washing',  label: 'Dicuci',       bg: 'bg-blue-50',    border: 'border-blue-300',    dot: 'bg-blue-500' },
-  { status: 'drying',   label: 'Dikeringkan',  bg: 'bg-cyan-50',    border: 'border-cyan-300',    dot: 'bg-cyan-500' },
-  { status: 'ironing',  label: 'Disetrika',    bg: 'bg-orange-50',  border: 'border-orange-300',  dot: 'bg-orange-500' },
-  { status: 'ready',    label: 'Siap Diambil', bg: 'bg-emerald-50', border: 'border-emerald-300', dot: 'bg-emerald-500' },
-  { status: 'completed', label: 'Selesai',     bg: 'bg-green-50',   border: 'border-green-300',   dot: 'bg-green-600' },
+type Col = { key: string; statuses: OrderStatus[]; target: OrderStatus; label: string; bg: string; border: string; dot: string };
+
+// Tampilan rinci: satu kolom per status (sesuai database).
+const COLUMNS_RINCI: Col[] = [
+  { key: 'received', statuses: ['received'], target: 'received', label: 'Diterima',     bg: 'bg-slate-100',  border: 'border-slate-300',   dot: 'bg-slate-500' },
+  { key: 'washing',  statuses: ['washing'],  target: 'washing',  label: 'Dicuci',       bg: 'bg-blue-50',    border: 'border-blue-300',    dot: 'bg-blue-500' },
+  { key: 'drying',   statuses: ['drying'],   target: 'drying',   label: 'Dikeringkan',  bg: 'bg-cyan-50',    border: 'border-cyan-300',    dot: 'bg-cyan-500' },
+  { key: 'ironing',  statuses: ['ironing'],  target: 'ironing',  label: 'Disetrika',    bg: 'bg-orange-50',  border: 'border-orange-300',  dot: 'bg-orange-500' },
+  { key: 'ready',    statuses: ['ready'],    target: 'ready',    label: 'Siap Diambil', bg: 'bg-emerald-50', border: 'border-emerald-300', dot: 'bg-emerald-500' },
+  { key: 'completed', statuses: ['completed'], target: 'completed', label: 'Selesai',   bg: 'bg-green-50',   border: 'border-green-300',   dot: 'bg-green-600' },
 ];
+
+// Tampilan ringkas (bawaan): Cuci, Kering, dan Setrika digabung menjadi satu kolom "Diproses".
+// Hanya tampilan: database tetap menyimpan status rinci, jadi dua mode bisa dipakai bergantian.
+const PROSES: OrderStatus[] = ['washing', 'drying', 'ironing'];
+const COLUMNS_RINGKAS: Col[] = [
+  COLUMNS_RINCI[0],
+  { key: 'processing', statuses: PROSES, target: 'washing', label: 'Diproses', bg: 'bg-blue-50', border: 'border-blue-300', dot: 'bg-blue-500' },
+  COLUMNS_RINCI[4],
+  COLUMNS_RINCI[5],
+];
+
+const MODE_KEY = 'wf.board.mode';
+function bacaMode(): boolean {
+  try { return localStorage.getItem(MODE_KEY) !== 'rinci'; } catch { return true; }
+}
+
+/** Langkah berikut/sebelumnya untuk tombol kartu, mengikuti mode tampilan. */
+function langkahNext(s: OrderStatus, ringkas: boolean): OrderStatus | null {
+  if (!ringkas) return nextStatus(s);
+  if (s === 'received') return 'washing';
+  if (PROSES.includes(s)) return 'ready';
+  return nextStatus(s);
+}
+function langkahPrev(s: OrderStatus, ringkas: boolean): OrderStatus | null {
+  if (!ringkas) return prevStatus(s);
+  if (s === 'ready') return 'ironing';
+  if (PROSES.includes(s)) return 'received';
+  return prevStatus(s);
+}
+function tombolLabel(next: OrderStatus, ringkas: boolean): string {
+  if (next === 'completed') return 'Selesaikan';
+  if (!ringkas) return 'Lanjut';
+  return next === 'washing' ? 'Proses' : next === 'ready' ? 'Siap' : 'Lanjut';
+}
+const bisaDitandaiSiap = (o: BoardOrder) => o.status === 'received' || PROSES.includes(o.status);
 
 function ringkasLayanan(o: BoardOrder): string {
   const names = o.order_items.map((i) => i.service_name);
@@ -47,10 +85,15 @@ export default function OrderManagement() {
   const [search, setSearch] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dragOverCol, setDragOverCol] = useState<OrderStatus | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   // pesanan yang menunggu pelunasan sebelum dipindah ke Selesai
   const [payFor, setPayFor] = useState<BoardOrder | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [ringkas, setRingkas] = useState(bacaMode);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [kode, setKode] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const COLUMNS = ringkas ? COLUMNS_RINGKAS : COLUMNS_RINCI;
 
   const all = useMemo(() => [...(active.data ?? []), ...(completed.data ?? [])], [active.data, completed.data]);
   const filtered = useMemo(() => {
@@ -82,13 +125,59 @@ export default function OrderManagement() {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', id);
   };
-  const handleDrop = (e: React.DragEvent, col: OrderStatus) => {
+  const handleDrop = (e: React.DragEvent, col: Col) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || draggedId;
     const order = all.find((o) => o.id === id);
     setDraggedId(null);
     setDragOverCol(null);
-    if (order) void move(order, col);
+    if (!order || col.statuses.includes(order.status)) return;   // dijatuhkan di kolomnya sendiri
+    void move(order, col.target);
+  };
+
+  const ubahMode = (r: boolean) => {
+    setRingkas(r);
+    setPicked(new Set());
+    try { localStorage.setItem(MODE_KEY, r ? 'ringkas' : 'rinci'); } catch { /* penyimpanan diblokir: abaikan */ }
+  };
+
+  // Pilihan yang sudah bergeser status (mis. diselesaikan orang lain) dibuang dari pilihan.
+  const pickedOrders = useMemo(() => all.filter((o) => picked.has(o.id) && bisaDitandaiSiap(o)), [all, picked]);
+  useEffect(() => {
+    if (picked.size > 0 && pickedOrders.length !== picked.size) setPicked(new Set(pickedOrders.map((o) => o.id)));
+  }, [picked, pickedOrders]);
+
+  const togglePick = (id: string) => setPicked((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  /** Tandai beberapa pesanan Siap Diambil satu per satu; gagal satu tidak menghentikan yang lain. */
+  const tandaiSiap = async (orders: BoardOrder[]) => {
+    if (orders.length === 0) return;
+    setBulkBusy(true);
+    let ok = 0;
+    let firstError = '';
+    for (const o of orders) {
+      try { await update.mutateAsync({ id: o.id, status: 'ready' }); ok += 1; }
+      catch (e) { if (!firstError) firstError = `${o.code}: ${pesanError(e, 'gagal')}`; }
+    }
+    setBulkBusy(false);
+    setPicked(new Set());
+    if (ok > 0) toast.success(ok === 1 ? `${orders[0].code} siap diambil.` : `${ok} pesanan ditandai siap diambil.`);
+    if (firstError) toast.error(`${orders.length - ok} pesanan gagal diubah. ${firstError}`);
+  };
+
+  /** Kotak kode cepat: kode lengkap atau angka belakangnya (mis. 00071), lalu Enter. */
+  const submitKode = async () => {
+    const q = kode.trim().toUpperCase();
+    if (!q) return;
+    const exact = all.filter((o) => o.code.toUpperCase() === q);
+    const cocok = exact.length > 0 ? exact : (q.includes('-') || q.length < 3 ? [] : all.filter((o) => o.code.toUpperCase().endsWith(q)));
+    if (cocok.length === 0) { toast.error(`Kode ${q} tidak ditemukan di papan.`); return; }
+    if (cocok.length > 1) { toast.error('Lebih dari satu pesanan cocok. Ketik kode lebih lengkap.'); return; }
+    const o = cocok[0];
+    if (o.status === 'ready') toast.info(`${o.code} sudah Siap Diambil.`);
+    else if (o.status === 'completed') toast.info(`${o.code} sudah selesai.`);
+    else { await tandaiSiap([o]); }
+    setKode('');
   };
 
   const now = Date.now();
@@ -98,10 +187,16 @@ export default function OrderManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-slate-900">Papan Pesanan</h1>
-          <p className="text-slate-500 text-sm mt-1">{currentUser?.branchName}. Seret kartu atau tekan Lanjut untuk mengubah status.</p>
+          <p className="text-slate-500 text-sm mt-1">{currentUser?.branchName}. Seret kartu atau tekan tombol di kartu untuk mengubah status.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-white border border-slate-200 rounded-lg px-3 py-2">
-          <span>{isLoading ? 'Memuat...' : `${filtered.length} pesanan ditampilkan`}</span>
+        <div className="flex items-center gap-3">
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs shadow-sm" role="group" aria-label="Tampilan papan" data-board-mode>
+            <button type="button" aria-pressed={ringkas} onClick={() => ubahMode(true)} className={`rounded-md px-3 py-1.5 font-medium ${ringkas ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>Ringkas</button>
+            <button type="button" aria-pressed={!ringkas} onClick={() => ubahMode(false)} className={`rounded-md px-3 py-1.5 font-medium ${!ringkas ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>Rinci</button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-400 bg-white border border-slate-200 rounded-lg px-3 py-2">
+            <span>{isLoading ? 'Memuat...' : `${filtered.length} pesanan ditampilkan`}</span>
+          </div>
         </div>
       </div>
 
@@ -127,7 +222,28 @@ export default function OrderManagement() {
           <option value="unpaid">Belum Bayar</option>
           <option value="partial">Sebagian</option>
         </select>
+        <form className="relative flex-1 min-w-56 max-w-xs" data-quick-ready onSubmit={(e) => { e.preventDefault(); void submitKode(); }}>
+          <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+          <input
+            placeholder="Ketik kode lalu Enter: tandai Siap" aria-label="Kode pesanan untuk ditandai siap" value={kode}
+            onChange={(e) => setKode(e.target.value)} disabled={bulkBusy}
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-emerald-200 bg-emerald-50/40 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+          />
+        </form>
       </div>
+
+      {pickedOrders.length > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm" data-bulk-bar>
+          <span className="font-medium text-emerald-900">{pickedOrders.length} pesanan dipilih</span>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setPicked(new Set())} disabled={bulkBusy} className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-white">Batal</button>
+            <button type="button" onClick={() => void tandaiSiap(pickedOrders)} disabled={bulkBusy} data-bulk-ready
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 font-medium text-white hover:bg-emerald-700 disabled:opacity-60">
+              <CheckCheck className="h-4 w-4" /> {bulkBusy ? 'Memproses...' : 'Tandai Siap Diambil'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {!isLoading && !error && search.trim() && filtered.length === 0 && (
         <p className="text-sm text-slate-500" data-search-history>
@@ -143,25 +259,34 @@ export default function OrderManagement() {
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ height: 'calc(100vh - 19rem)', minHeight: '26rem' }}>
           {COLUMNS.map((col) => {
-            const colOrders = filtered.filter((o) => o.status === col.status);
-            const isDragOver = dragOverCol === col.status;
+            const colOrders = filtered.filter((o) => col.statuses.includes(o.status));
+            const isDragOver = dragOverCol === col.key;
+            const selectable = colOrders.filter(bisaDitandaiSiap);
+            const allPicked = selectable.length > 0 && selectable.every((o) => picked.has(o.id));
             return (
               <div
-                key={col.status}
-                data-column={col.status}
+                key={col.key}
+                data-column={col.key}
                 className={`flex-shrink-0 w-72 h-full flex flex-col rounded-xl border-2 transition-all ${isDragOver ? 'border-emerald-400 bg-emerald-50/50' : `${col.border} ${col.bg}`}`}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCol(col.status); }}
-                onDrop={(e) => handleDrop(e, col.status)}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCol(col.key); }}
+                onDrop={(e) => handleDrop(e, col)}
                 onDragLeave={() => setDragOverCol(null)}
               >
                 <div className="flex items-center justify-between p-3 border-b border-white/60">
                   <div className="flex items-center gap-2">
                     <div className={`h-2.5 w-2.5 rounded-full ${col.dot}`} />
                     <span className="text-sm font-semibold text-slate-700">{col.label}</span>
-                    {col.status === 'completed' && <span className="text-xs text-slate-400">hari ini</span>}
+                    {col.key === 'completed' && <span className="text-xs text-slate-400">hari ini</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    {col.status === 'completed' && (
+                    {selectable.length > 0 && (
+                      <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                        <input type="checkbox" aria-label={`Pilih semua di ${col.label}`} checked={allPicked}
+                          onChange={() => setPicked((prev) => { const n = new Set(prev); for (const o of selectable) { if (allPicked) n.delete(o.id); else n.add(o.id); } return n; })} />
+                        Semua
+                      </label>
+                    )}
+                    {col.key === 'completed' && (
                       <Link to="/employee/history" className="text-xs font-medium text-emerald-700 hover:underline" data-history-link>Riwayat</Link>
                     )}
                     <span className="h-6 min-w-6 rounded-full bg-white/80 flex items-center justify-center text-xs font-bold text-slate-700 px-1.5">{colOrders.length}</span>
@@ -179,8 +304,8 @@ export default function OrderManagement() {
                   )}
                   {colOrders.map((order) => {
                     const overdue = isOverdue(order, now);
-                    const next = nextStatus(order.status);
-                    const prev = prevStatus(order.status);
+                    const next = langkahNext(order.status, ringkas);
+                    const prev = langkahPrev(order.status, ringkas);
                     const locked = order.status === 'completed';
                     return (
                       <div
@@ -189,11 +314,14 @@ export default function OrderManagement() {
                         draggable={!locked}
                         onDragStart={(e) => handleDragStart(e, order.id)}
                         onDragEnd={() => { setDraggedId(null); setDragOverCol(null); }}
-                        onClick={(e) => { if (!(e.target as HTMLElement).closest('button, a')) setDetailId(order.id); }}
+                        onClick={(e) => { if (!(e.target as HTMLElement).closest('button, a, input, label')) setDetailId(order.id); }}
                         className={`cursor-pointer bg-white rounded-xl border shadow-sm hover:shadow-md transition-all select-none ${locked ? '' : 'active:cursor-grabbing'} ${overdue ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200'} ${draggedId === order.id ? 'opacity-40' : ''}`}
                       >
                         <div className="p-3">
                           <div className="flex items-center justify-between mb-2">
+                            {bisaDitandaiSiap(order) && (
+                              <input type="checkbox" aria-label={`Pilih ${order.code}`} checked={picked.has(order.id)} onChange={() => togglePick(order.id)} className="mr-2" />
+                            )}
                             <button type="button" onClick={() => setDetailId(order.id)} aria-label={`Detail ${order.code}`} className="text-xs font-semibold text-slate-500 font-mono hover:text-emerald-700 hover:underline">{order.code}</button>
                             <StatusBadge status={order.payment_status} size="sm" />
                           </div>
@@ -252,10 +380,10 @@ export default function OrderManagement() {
                               {next && (
                                 <button
                                   onClick={() => void move(order, next)}
-                                  aria-label={`${next === 'completed' ? 'Selesaikan' : 'Lanjutkan'} ${order.code}`}
+                                  aria-label={`${next === 'completed' ? 'Selesaikan' : next === 'ready' && ringkas ? 'Tandai siap' : 'Lanjutkan'} ${order.code}`}
                                   className="flex items-center gap-0.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg px-2 py-1 hover:bg-emerald-100 transition-colors"
                                 >
-                                  {next === 'completed' ? 'Selesaikan' : 'Lanjut'} <ChevronRight className="h-3 w-3" />
+                                  {tombolLabel(next, ringkas)} <ChevronRight className="h-3 w-3" />
                                 </button>
                               )}
                             </div>
