@@ -16,6 +16,7 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
+  soon?: boolean;
 }
 
 const navSections: { label: string; items: NavItem[] }[] = [
@@ -37,15 +38,15 @@ const navSections: { label: string; items: NavItem[] }[] = [
     label: 'Keuangan',
     items: [
       { to: '/admin/reports', label: 'Laporan Keuangan', icon: BarChart3 },
-      { to: '/admin/commissions', label: 'Komisi', icon: Banknote },
+      { to: '/admin/commissions', label: 'Komisi', icon: Banknote, soon: true },
     ],
   },
   {
     label: 'Operasional',
     items: [
-      { to: '/admin/inventory', label: 'Inventaris', icon: Package },
-      { to: '/admin/membership', label: 'Keanggotaan', icon: Star },
-      { to: '/admin/promotions', label: 'Promo', icon: Percent },
+      { to: '/admin/inventory', label: 'Inventaris', icon: Package, soon: true },
+      { to: '/admin/membership', label: 'Keanggotaan', icon: Star, soon: true },
+      { to: '/admin/promotions', label: 'Promo', icon: Percent, soon: true },
     ],
   },
   {
@@ -133,7 +134,8 @@ export default function AdminLayout() {
                     {({ isActive }) => (
                       <>
                         <item.icon className={`h-4.5 w-4.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                        {sidebarOpen && <span>{item.label}</span>}
+                        {sidebarOpen && <span className="flex-1">{item.label}</span>}
+                        {sidebarOpen && item.soon && <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-300">Segera</span>}
                       </>
                     )}
                   </NavLink>

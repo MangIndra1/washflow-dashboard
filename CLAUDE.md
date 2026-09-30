@@ -49,7 +49,7 @@ src/
   data/         mockData.ts, sementara, dihapus bertahap
   styles/
 docs/           spesifikasi awal (saas-product-spec.md, admin-employee-dashboard.md)
-supabase/       migrations/ (skema, RLS, M2), seed.sql, demo-users.sql, functions/create-staff (Edge Function)
+supabase/       migrations/ (skema, RLS, M2), seed.sql (bersih: hanya tingkat member), bootstrap-admin.sql, clean-demo-data.sql, demo/ (seed + demo-users untuk portofolio), functions/create-staff (Edge Function)
 ```
 
 Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
@@ -94,7 +94,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M5**: Halaman `/track/:token` publik + QR di struk, notifikasi WhatsApp lewat n8n saat status "siap". *(Fitur pembeda utama. Bagian WhatsApp belum diuji terhadap WhatsApp Cloud API sungguhan.)*
   - [x] Panel detail pesanan di Papan Pesanan, info pembayaran (QRIS + rekening) di modal bayar/struk/tracking, token + halaman `/track/:token` + QR tracking di struk.
   - [x] Antrean notifikasi (outbox) + workflow n8n WhatsApp Cloud API resmi di `automation/n8n/`. Uji dengan nomor uji Meta sebelum diserahkan ke klien.
-- [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait).
+- [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait). Sementara keempat rute admin menampilkan `ComingSoon` (menu ditandai Segera); file halaman lama (`InventoryManagement`, dll., masih mockData) dipertahankan untuk dipakai ulang dan akan diganti saat M6.
 - [ ] **M7** Deploy, case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
 
 ## Utang teknis yang diketahui (dari review awal)
@@ -106,7 +106,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 
 - Frontend hanya memakai **publishable key** (`VITE_SUPABASE_PUBLISHABLE_KEY`). Secret/service_role key dan password database tidak boleh masuk repo maupun `.env.local`. `.env.local` tidak boleh di-commit.
 - **RLS wajib aktif di setiap tabel baru** (`alter table ... enable row level security` + policy). Default privilege Supabase bisa memberi akses ke `anon`, jangan mengandalkan default.
-- Role **tidak pernah** dibaca dari metadata sign-up; `handle_new_user` selalu membuat role `employee` tanpa cabang. Admin/cabang ditetapkan manual (`demo-users.sql`).
+- Role **tidak pernah** dibaca dari metadata sign-up; `handle_new_user` selalu membuat role `employee` tanpa cabang. Admin/cabang ditetapkan manual (`bootstrap-admin.sql`; data demo di `supabase/demo/`). Jangan menaruh email pribadi di repo, pakai placeholder.
 - Fungsi helper RLS (`is_staff`, `is_admin`, `my_branch_id`) ada di schema `private` (tidak terekspos Data API).
 - Uang disimpan sebagai bigint Rupiah. Kolom uang di `orders` dilindungi trigger (klien tidak bisa memalsukan total/paid_amount); harga item di-snapshot dari `services` oleh trigger; `paid_amount`/`payment_status` dihitung dari `payments`.
 - Celah diskon sembarang sudah ditutup di M3a: `orders`, `order_items`, dan `payments` tidak bisa di-insert dari client; pembuatan order dan diskon lewat RPC `create_order` (lihat Catatan M3a).

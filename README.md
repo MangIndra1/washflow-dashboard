@@ -24,10 +24,12 @@ Bagian portofolio **Digital Product Mang In**.
 ```bash
 npx supabase login
 npx supabase link --project-ref <project-ref>
-npx supabase db push --include-seed   # skema + RLS + data demo fiktif
+npx supabase db push --include-seed   # skema + RLS + tingkat keanggotaan bawaan (tanpa data contoh)
 ```
 
-4. Di Dashboard Supabase buat user demo (Authentication > Users), lalu jalankan `supabase/demo-users.sql` di SQL Editor untuk memberi role/cabang.
+4. Buat admin pertama: di Dashboard Supabase buka Authentication > Users > Add user (centang Auto Confirm User), lalu ganti email di `supabase/bootstrap-admin.sql` dan jalankan di SQL Editor. Setelah login, buat cabang, layanan, dan karyawan lewat aplikasi.
+
+   Untuk project demo/portofolio dengan data contoh, jalankan `supabase/demo/seed.sql` lalu `supabase/demo/demo-users.sql` (bukan untuk klien). Untuk membersihkan project yang sudah terlanjur berisi data demo, pakai `supabase/clean-demo-data.sql` (baca komentar di dalamnya dulu; tidak bisa dibatalkan).
 5. Deploy dua Edge Function untuk akun karyawan (sekali saja, setelah `link`; ulangi bila kodenya berubah):
 
 ```bash
@@ -60,7 +62,7 @@ src/
   data/         mockData.ts, sementara, akan digantikan Supabase
   styles/
 docs/           spesifikasi awal
-supabase/       migrations/ (skema + RLS), seed.sql (data demo), demo-users.sql
+supabase/       migrations/ (skema + RLS), seed.sql (bersih), bootstrap-admin.sql, clean-demo-data.sql, demo/ (data contoh)
 ```
 
 Impor memakai alias `@/` (= `src/`).
