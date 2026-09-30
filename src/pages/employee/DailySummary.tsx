@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Download, CheckCircle, Clock, Wallet, ShoppingBag, Printer, AlertCircle, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useAuth } from '@/features/auth/AuthContext';
 import { formatRupiah, formatTanggalLengkap, formatJam } from '@/lib/format';
-import { downloadCsv } from '@/lib/csv';
+import { ExportDialog } from '@/features/orders/ExportDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { METODE_BAYAR, type PaymentMethod } from '@/features/orders/api';
 import { dayRange, useActiveOrders, useDayOrders, useDayPayments } from '@/features/orders/hooks';
@@ -12,6 +12,7 @@ import { summarizeDay } from '@/features/orders/summary';
 
 export default function DailySummary() {
   const { currentUser } = useAuth();
+  const [exporting, setExporting] = useState(false);
   const range = useMemo(() => dayRange(), []);
   const active = useActiveOrders();
   const dayOrders = useDayOrders(range);
@@ -59,20 +60,6 @@ export default function DailySummary() {
 
   const log = stats.created;
 
-  const exportCsv = () => {
-    const rows: unknown[][] = [['Kode', 'Jam', 'Pelanggan', 'Telepon', 'Layanan', 'Kasir', 'Total', 'Dibayar', 'Pembayaran', 'Status']];
-    for (const o of log) {
-      rows.push([
-        o.code, formatJam(o.created_at), o.customer?.name ?? '', o.customer?.phone ?? '',
-        o.order_items.map((i) => i.service_name).join(', '), o.cashier?.full_name ?? '',
-        o.total, o.paid_amount, o.payment_status, o.status,
-      ]);
-    }
-    const stamp = new Date(range.from);
-    const ymd = `${stamp.getFullYear()}-${String(stamp.getMonth() + 1).padStart(2, '0')}-${String(stamp.getDate()).padStart(2, '0')}`;
-    downloadCsv(`ringkasan-${currentUser?.branchCode ?? 'cabang'}-${ymd}.csv`, rows);
-  };
-
   const cards = [
     { label: 'Pesanan Hari Ini', value: String(stats.created.length), sub: 'Pesanan baru masuk', icon: ShoppingBag, bg: 'bg-blue-100', color: 'text-blue-600', accent: 'bg-blue-500' },
     { label: 'Pembayaran Diterima', value: formatRupiah(stats.received), sub: `${payments.data?.length ?? 0} transaksi`, icon: Wallet, bg: 'bg-emerald-100', color: 'text-emerald-600', accent: 'bg-emerald-500' },
@@ -91,8 +78,8 @@ export default function DailySummary() {
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 shadow-sm">
             <Printer className="h-4 w-4" /> Cetak Laporan
           </button>
-          <button onClick={exportCsv} disabled={loading || failed} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 shadow-sm shadow-emerald-200 disabled:opacity-50">
-            <Download className="h-4 w-4" /> Ekspor CSV
+          <button onClick={() => setExporting(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 shadow-sm shadow-emerald-200 disabled:opacity-50">
+            <Download className="h-4 w-4" /> Ekspor Laporan
           </button>
         </div>
       </div>
@@ -248,6 +235,7 @@ export default function DailySummary() {
           </div>
         </>
       )}
+      {exporting && <ExportDialog branchName={currentUser?.branchName ?? 'Cabang'} branchCode={currentUser?.branchCode ?? 'cabang'} onClose={() => setExporting(false)} />}
     </div>
   );
 }

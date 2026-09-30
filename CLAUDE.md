@@ -142,3 +142,9 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - `lib/csv.ts`: pemisah titik koma dan BOM UTF-8 supaya terbuka benar di Excel Indonesia; sel yang diawali `= + - @` diberi `'` di depan (mencegah formula injection).
 - Migrasi `20260929000400_m3b_indexes.sql` menambah indeks untuk query harian. Jalankan `npx supabase db push`.
 - Bagian yang belum ada: lonceng tidak menyimpan status "sudah dibaca" (daftar dihitung dari pesanan aktif).
+
+## Catatan ekspor laporan
+
+- Tombol "Ekspor Laporan" di Ringkasan Harian membuka `ExportDialog`: periode Hari ini, Kemarin, 7 hari terakhir, Bulan ini, Bulan lalu, atau rentang tanggal (maks 92 hari, jam lokal perangkat, logika di `features/orders/period.ts`). Isi laporan = pesanan yang DIBUAT pada periode itu, plus pembayaran yang diterima pada periode itu.
+- Berkas `.xlsx` dibuat di browser oleh `lib/xlsx.ts` dengan `exceljs`, dimuat lewat `import()` hanya saat tombol diklik (chunk terpisah, sekitar 270 KB gzip). Tiga sheet: Ringkasan, Pesanan, Pembayaran. Uang disimpan sebagai angka berformat Rupiah, telepon sebagai teks (nol di depan aman), baris total memakai `SUBTOTAL` supaya mengikuti filter. Jam Excel digeser ke jam lokal karena Excel tidak punya zona waktu.
+- Data diambil per halaman 1000 baris (`readAll`, batas 20.000) supaya lolos batas default PostgREST. CSV tetap ada sebagai tautan kecil di dialog (`lib/csv.ts`, dengan penjaga formula injection).

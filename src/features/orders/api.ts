@@ -184,3 +184,38 @@ export function checkMove(o: Pick<BoardOrder, 'status' | 'payment_status'>, targ
 export function isOverdue(o: Pick<BoardOrder, 'status' | 'due_at'>, now = Date.now()): boolean {
   return o.status !== 'completed' && !!o.due_at && new Date(o.due_at).getTime() < now;
 }
+
+// ─── Ekspor laporan (rentang bebas, dibaca per halaman supaya lolos batas 1000 baris) ──
+export const STATUS_LABEL: Record<OrderStatus, string> = {
+  received: 'Diterima', washing: 'Dicuci', drying: 'Dikeringkan', ironing: 'Disetrika', ready: 'Siap Diambil', completed: 'Selesai',
+};
+export const BAYAR_LABEL: Record<Tables<'orders'>['payment_status'], string> = { unpaid: 'Belum Bayar', partial: 'Sebagian', paid: 'Lunas' };
+
+export interface ExportPayment extends DayPayment { order: { code: string } | null }
+
+const PAGE = 1000;
+const MAX_ROWS = 20000;
+
+async function readAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; from < MAX_ROWS; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if (!data || data.length < PAGE) break;
+  }
+  return out;
+}
+
+/** Pesanan yang DIBUAT dalam [from, to), urut waktu. */
+export function fetchCreatedInRange(from: string, to: string): Promise<BoardOrder[]> {
+  return readAll<BoardOrder>((a, b) =>
+    supabase.from('orders').select(BOARD_SELECT).gte('created_at', from).lt('created_at', to)
+      .order('created_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: BoardOrder[] | null; error: unknown }>);
+}
+
+export function fetchExportPayments(from: string, to: string): Promise<ExportPayment[]> {
+  return readAll<ExportPayment>((a, b) =>
+    supabase.from('payments').select('id, order_id, amount, method, paid_at, order:orders(code)')
+      .gte('paid_at', from).lt('paid_at', to).order('paid_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: ExportPayment[] | null; error: unknown }>);
+}
