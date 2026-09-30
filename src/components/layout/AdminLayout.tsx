@@ -3,8 +3,9 @@ import { Outlet, NavLink, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Building2, Users, Tag, BarChart3,
   Package, Banknote, Star, Percent, LogOut,
-  Bell, ChevronDown, KeyRound, Waves, Menu, X, AlertCircle, Wrench, Settings,
+  Bell, ChevronDown, KeyRound, Menu, X, AlertCircle, Wrench, Settings,
 } from 'lucide-react';
+import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
 import { useBranches } from '@/features/branches/hooks';
@@ -97,9 +98,7 @@ export default function AdminLayout() {
       <aside className={`${sidebarOpen ? 'w-60' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-slate-900 flex flex-col h-full z-30`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800">
-          <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-            <Waves className="h-5 w-5 text-white" />
-          </div>
+          <Logo size={32} />
           {sidebarOpen && (
             <div>
               <p className="text-white font-semibold text-sm leading-none">WashFlow</p>

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Plus, Kanban, Search, FileText, History,
-  LogOut, Bell, ChevronDown, KeyRound, Waves, Menu, X,
+  LogOut, Bell, ChevronDown, KeyRound, Menu, X,
   AlertCircle, CheckCircle, Wallet,
 } from 'lucide-react';
+import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
 import { useActiveOrders } from '@/features/orders/hooks';
@@ -60,9 +61,7 @@ export default function EmployeeLayout() {
       <aside className={`${sidebarOpen ? 'w-60' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-slate-900 flex flex-col h-full z-30 print:hidden`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800">
-          <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-            <Waves className="h-5 w-5 text-white" />
-          </div>
+          <Logo size={32} />
           {sidebarOpen && (
             <div>
               <p className="text-white font-semibold text-sm leading-none">WashFlow</p>

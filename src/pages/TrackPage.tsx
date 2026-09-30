@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Check, MapPin, Phone, Waves } from 'lucide-react';
+import { Check, MapPin, Phone } from 'lucide-react';
 
+import { Logo } from '@/components/shared/Logo';
 import { PaymentInstructions } from '@/features/payment-info/PaymentInstructions';
 import { STATUS_LABEL, STATUS_ORDER } from '@/features/orders/api';
 import { fetchTracking } from '@/features/tracking/api';
@@ -36,7 +37,7 @@ export default function TrackPage() {
     <div className="min-h-screen bg-slate-50 py-6 px-4">
       <div className="mx-auto w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-4 text-slate-700">
-          <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center"><Waves className="h-4 w-4 text-white" /></div>
+          <Logo size={32} />
           <span className="font-semibold">WashFlow</span>
         </div>
         {children}

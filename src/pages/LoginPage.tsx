@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate } from 'react-router';
-import { Waves, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 
+import { Logo } from '@/components/shared/Logo';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,9 +53,7 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
-            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center">
-              <Waves className="h-6 w-6 text-white" />
-            </div>
+            <Logo size={44} />
             <div>
               <p className="text-white font-bold text-xl leading-none">WashFlow</p>
               <p className="text-blue-300 text-xs mt-0.5">Sistem Manajemen Laundry</p>
@@ -93,9 +92,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-10 lg:hidden">
-            <div className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center">
-              <Waves className="h-5 w-5 text-white" />
-            </div>
+            <Logo size={38} />
             <p className="text-slate-900 font-bold text-lg">WashFlow</p>
           </div>
 
