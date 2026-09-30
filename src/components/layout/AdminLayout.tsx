@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Building2, Users, Tag, BarChart3,
   Package, Banknote, Star, Percent, LogOut,
-  Bell, ChevronDown, KeyRound, Waves, Menu, X, AlertCircle, Wrench,
+  Bell, ChevronDown, KeyRound, Waves, Menu, X, AlertCircle, Wrench, Settings,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
@@ -46,6 +46,12 @@ const navSections: { label: string; items: NavItem[] }[] = [
       { to: '/admin/inventory', label: 'Inventaris', icon: Package },
       { to: '/admin/membership', label: 'Keanggotaan', icon: Star },
       { to: '/admin/promotions', label: 'Promo', icon: Percent },
+    ],
+  },
+  {
+    label: 'Sistem',
+    items: [
+      { to: '/admin/settings', label: 'Pengaturan', icon: Settings },
     ],
   },
 ];

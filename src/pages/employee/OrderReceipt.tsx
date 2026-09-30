@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import { ArrowLeft, CheckCircle, MessageSquare, Plus, Printer, Wallet } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Copy, MessageSquare, Plus, Printer, Wallet } from 'lucide-react';
+import { toast } from 'sonner';
 
+import { QrCode } from '@/components/shared/QrCode';
 import { ErrorPanel } from '@/components/shared/QueryStatus';
+import { PaymentInstructions } from '@/features/payment-info/PaymentInstructions';
+import { usePaymentInfo } from '@/features/payment-info/hooks';
+import { trackingUrl } from '@/features/tracking/api';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { METODE_BAYAR, type OrderDetail } from '@/features/orders/api';
 import { PaymentModal } from '@/features/orders/PaymentModal';
@@ -19,6 +24,7 @@ function pesanWhatsApp(o: OrderDetail): string {
     `Nomor pesanan: ${o.code}`,
     `Total: ${formatRupiah(o.total)} (${bayar})`,
     o.due_at ? `Estimasi selesai: ${formatTanggalJam(o.due_at)}` : '',
+    `Pantau cucian Anda: ${trackingUrl(o.track_token)}`,
     `Terima kasih, ${o.branch?.name ?? 'WashFlow'}.`,
   ].filter(Boolean).join('\n');
 }
@@ -29,6 +35,7 @@ export default function OrderReceipt() {
   const baru = (location.state as { baru?: boolean } | null)?.baru === true;
   const { data: order, isLoading, isError, error, refetch } = useOrderDetail(id);
   const [payOpen, setPayOpen] = useState(false);
+  const payInfo = usePaymentInfo();
 
   if (isLoading) {
     return <div className="max-w-lg mx-auto h-96 animate-pulse rounded-2xl bg-white border border-slate-200" role="status" aria-label="Memuat pesanan" />;
@@ -131,6 +138,20 @@ export default function OrderReceipt() {
               <p className="text-xs font-semibold text-amber-700 mb-1">Catatan Khusus</p>
               <p className="text-sm text-amber-800">{order.notes}</p>
             </div>
+          )}
+
+          <div className="mb-5 flex flex-col items-center gap-1 rounded-xl border border-slate-200 p-3" data-tracking>
+            <p className="text-xs font-semibold text-slate-700">Pantau cucian Anda</p>
+            <QrCode value={trackingUrl(order.track_token)} size={120} label="QR pelacakan pesanan" />
+            <p className="text-[11px] text-slate-400 text-center">Pindai untuk melihat status pesanan tanpa perlu menelepon.</p>
+            <button
+              type="button" onClick={async () => { try { await navigator.clipboard.writeText(trackingUrl(order.track_token)); toast.success('Tautan pelacakan disalin.'); } catch { toast.error('Tidak dapat menyalin tautan.'); } }}
+              className="print:hidden flex items-center gap-1.5 text-xs text-emerald-700 hover:underline"
+            ><Copy className="h-3 w-3" /> Salin tautan</button>
+          </div>
+
+          {sisa > 0 && payInfo.data && (payInfo.data.qris_payload || payInfo.data.banks.length > 0) && (
+            <div className="mb-5" data-receipt-payment><PaymentInstructions info={payInfo.data} qrSize={130} /></div>
           )}
 
           <p className="hidden print:block text-center text-xs text-slate-500 mb-2">Terima kasih. Harap bawa struk ini saat mengambil cucian.</p>

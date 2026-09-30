@@ -54,7 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applyUser = useCallback((user: CurrentUser | null) => {
     // Cache data milik pengguna sebelumnya tidak boleh terbawa ke pengguna lain.
-    if (!user || (userRef.current && userRef.current.id !== user.id)) queryClient.clear();
+    // Hanya bila sebelumnya ada pengguna: kunjungan publik (mis. /track) tanpa sesi tidak boleh mengosongkan query yang sedang berjalan.
+    if (userRef.current && (!user || userRef.current.id !== user.id)) queryClient.clear();
     userRef.current = user;
     setCurrentUser(user);
   }, []);

@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { customerKeys } from '@/features/customers/hooks';
 import {
-  createOrder, fetchActiveOrders, fetchOrderDetail, fetchOrdersInRange, fetchPaymentsInRange, fetchRecentCompleted,
+  createOrder, fetchActiveOrders, fetchStatusLogs, fetchOrderDetail, fetchOrdersInRange, fetchPaymentsInRange, fetchRecentCompleted,
   quoteOrder, recordPayment, updateOrderStatus, type BoardOrder, type CartLine, type OrderStatus, type PaymentMethod,
 } from './api';
 
@@ -102,4 +102,8 @@ export function useUpdateOrderStatus() {
     onError: (_e, _v, ctx) => { if (ctx?.previous) qc.setQueryData(activeKey, ctx.previous); },
     onSettled: () => qc.invalidateQueries({ queryKey: orderKeys.all }),
   });
+}
+
+export function useStatusLogs(orderId: string | undefined) {
+  return useQuery({ queryKey: ['orders', 'status-logs', orderId], queryFn: () => fetchStatusLogs(orderId!), enabled: !!orderId });
 }

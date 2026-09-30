@@ -112,7 +112,7 @@ const BOARD_SELECT = `id, code, status, payment_status, total, paid_amount, due_
 /** Semua pesanan yang belum selesai (RLS membatasi karyawan ke cabangnya). */
 export async function fetchActiveOrders(): Promise<BoardOrder[]> {
   const { data, error } = await supabase
-    .from('orders').select(BOARD_SELECT).neq('status', 'completed').order('due_at', { ascending: true }).limit(500);
+    .from('orders').select(BOARD_SELECT).neq('status', 'completed').order('due_at', { ascending: true }).order('code', { ascending: true }).limit(500);
   if (error) throw error;
   return data as unknown as BoardOrder[];
 }
@@ -122,7 +122,7 @@ export async function fetchRecentCompleted(days = 2): Promise<BoardOrder[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const { data, error } = await supabase
     .from('orders').select(BOARD_SELECT).eq('status', 'completed').gte('completed_at', since)
-    .order('completed_at', { ascending: false }).limit(100);
+    .order('completed_at', { ascending: false }).order('code', { ascending: false }).limit(100);
   if (error) throw error;
   return data as unknown as BoardOrder[];
 }
@@ -225,4 +225,21 @@ export function fetchExportPayments(from: string, to: string, branchId?: string)
     if (branchId) q = q.eq('order.branch_id', branchId);
     return q.order('paid_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: ExportPayment[] | null; error: unknown }>;
   });
+}
+
+// ─── Riwayat status (untuk panel detail) ─────────────────────────────────────
+export interface StatusLogEntry { id: string; to_status: OrderStatus; changed_at: string; by: string | null }
+
+export async function fetchStatusLogs(orderId: string): Promise<StatusLogEntry[]> {
+  const { data, error } = await supabase
+    .from('order_status_logs').select('id, to_status, changed_by, changed_at').eq('order_id', orderId).order('changed_at', { ascending: true });
+  if (error) throw error;
+  const ids = [...new Set(data.map((l) => l.changed_by).filter((v): v is string => !!v))];
+  const names = new Map<string, string>();
+  if (ids.length > 0) {
+    // RLS: karyawan hanya melihat rekan sekabupaten; nama yang tidak terbaca ditampilkan kosong
+    const { data: profs } = await supabase.from('profiles').select('id, full_name').in('id', ids);
+    for (const p of profs ?? []) names.set(p.id, p.full_name);
+  }
+  return data.map((l) => ({ id: l.id, to_status: l.to_status, changed_at: l.changed_at, by: l.changed_by ? names.get(l.changed_by) ?? null : null }));
 }

@@ -71,14 +71,14 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - `profiles`, terhubung ke `auth.users`; kolom `role` (admin/employee), `branch_id`.
 - `services`, nama layanan, satuan (kg/pcs/pasang), harga, estimasi durasi, aktif.
 - `customers`, nama, no. WA (unik), poin member, tier.
-- `orders`, kode order, customer, cabang, kasir, status, total, diskon, status bayar, `due_at`, `tracking_token`.
+- `orders`, kode order, customer, cabang, kasir, status, total, diskon, status bayar, `due_at`, `track_token`.
 - `order_items`, satu order bisa berisi beberapa layanan.
 - `order_status_logs`, riwayat perubahan status; ini yang memicu webhook n8n ke WA.
 - `payments`, mendukung DP/pembayaran sebagian.
 - `inventory_items` + `inventory_movements`, stok bahan per cabang.
 - `promotions`, kode promo, tipe, nilai, periode.
 - Laporan keuangan & komisi dihitung lewat **SQL view**, bukan disimpan sebagai kolom statis.
-- Tracking publik pelanggan lewat RPC `get_order_by_token(token)`, jangan expose tabel `orders`
+- Tracking publik pelanggan lewat RPC `track_order(token)`, jangan expose tabel `orders`
   langsung ke akses anonim.
 
 ## Roadmap
@@ -92,6 +92,8 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
   - [x] **M3b**: papan pesanan (kanban) nyata, dasbor karyawan, ringkasan harian (CSV + cetak), lonceng notifikasi nyata, `legacyBranchId`/mockData karyawan dihapus.
 - [x] **M4**: Dasbor admin dan Laporan Keuangan dari query nyata (RPC `admin_report`), ekspor Excel per periode/cabang, lonceng admin nyata.
 - [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
+  - [x] Panel detail pesanan di Papan Pesanan, info pembayaran (QRIS + rekening) di modal bayar/struk/tracking, token + halaman `/track/:token` + QR tracking di struk.
+  - [ ] Workflow n8n WhatsApp (template terpisah, WhatsApp Cloud API resmi).
 - [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait).
 - [ ] **M7** Deploy, case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
 
@@ -157,3 +159,12 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Lonceng admin = pesanan terlambat semua cabang + cabang berstatus Perbaikan. Kolom "Stok menipis" menunggu inventaris nyata (M6).
 - Halaman yang masih memakai mockData: Inventaris, Keanggotaan, Promo, Komisi (M6).
 - Ekspor Excel admin memakai `buildLaporanXlsx` yang sama dengan karyawan (`showBranch` menambah kolom Cabang), maksimal rentang 366 hari.
+
+## Catatan M5
+
+- **Token tracking**: `orders.track_token` (32 hex dari `gen_random_uuid()`, unik, tidak bisa diubah staf lewat Data API). Halaman publik `/track/:token` membaca data HANYA lewat RPC `track_order(p_token)` (`security definer`, `set search_path = ''`, executable oleh `anon`). Fungsi mengembalikan `null` bila format/token salah, dan hanya memuat nama depan pelanggan (tanpa telepon, kasir, atau ID internal). `payment_info` disertakan hanya bila pesanan belum lunas. Tabel `orders` tetap tertutup untuk anon.
+- **Info pembayaran**: tabel singleton `payment_info` (`id boolean` = true): `qris_payload`, `qris_merchant`, `banks` (jsonb, maks 5), `note`. Staf boleh membaca, hanya admin yang mengubah (Pengaturan > `/admin/settings`). QRIS disimpan sebagai TEKS payload hasil dekode gambar (jsQR, dimuat lazy), divalidasi di `src/lib/qris.ts` (awalan `000201`, CRC16-CCITT, negara ID, QRIS dinamis ditolak), lalu digambar ulang tajam lewat `components/shared/QrCode.tsx` (paket `qrcode`, SVG). QRIS statis TIDAK punya verifikasi pembayaran otomatis: kasir tetap mengonfirmasi manual dan mencatat lewat `record_payment`.
+- **Detail pesanan**: klik kartu di Papan Pesanan membuka `OrderDetailSheet` (klik pada tombol/tautan di dalam kartu tidak ikut membuka). Drag tetap berfungsi; urutan kartu diberi tie-breaker `code` supaya tidak berpindah saat polling.
+- **Deploy**: rute `/track/:token` adalah rute SPA, host WAJIB mengarahkan semua path ke `index.html` (Vercel/Netlify rewrite). Uji dulu dengan membuka tautan langsung, bukan hanya lewat navigasi.
+- **Perbaikan penting**: `AuthProvider` dulu memanggil `queryClient.clear()` saat tidak ada sesi, sehingga query halaman publik yang sedang berjalan menggantung selamanya. Sekarang cache dikosongkan hanya bila sebelumnya ada pengguna (logout/ganti akun).
+- **WhatsApp otomatis**: gunakan WhatsApp Cloud API resmi (template message). Jangan memakai library tidak resmi (mis. sesi WhatsApp Web) untuk klien berbayar: akun bisa diblokir. Belum bisa diuji terhadap WhatsApp sungguhan dari lingkungan pengembangan ini.

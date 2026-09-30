@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { Search, AlertCircle, Clock, ChevronRight, ChevronLeft, Phone, MessageSquare, StickyNote } from 'lucide-react';
 
@@ -7,6 +6,7 @@ import { ErrorPanel } from '@/components/shared/QueryStatus';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useAuth } from '@/features/auth/AuthContext';
 import { checkMove, isOverdue, nextStatus, prevStatus, type BoardOrder, type OrderStatus } from '@/features/orders/api';
+import { OrderDetailSheet } from '@/features/orders/OrderDetailSheet';
 import { PaymentModal } from '@/features/orders/PaymentModal';
 import { useActiveOrders, useRecentCompleted, useUpdateOrderStatus } from '@/features/orders/hooks';
 import { pesanError } from '@/lib/errors';
@@ -49,6 +49,7 @@ export default function OrderManagement() {
   const [dragOverCol, setDragOverCol] = useState<OrderStatus | null>(null);
   // pesanan yang menunggu pelunasan sebelum dipindah ke Selesai
   const [payFor, setPayFor] = useState<BoardOrder | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const all = useMemo(() => [...(active.data ?? []), ...(completed.data ?? [])], [active.data, completed.data]);
   const filtered = useMemo(() => {
@@ -82,7 +83,8 @@ export default function OrderManagement() {
   };
   const handleDrop = (e: React.DragEvent, col: OrderStatus) => {
     e.preventDefault();
-    const order = all.find((o) => o.id === draggedId);
+    const id = e.dataTransfer.getData('text/plain') || draggedId;
+    const order = all.find((o) => o.id === id);
     setDraggedId(null);
     setDragOverCol(null);
     if (order) void move(order, col);
@@ -172,11 +174,12 @@ export default function OrderManagement() {
                         draggable={!locked}
                         onDragStart={(e) => handleDragStart(e, order.id)}
                         onDragEnd={() => { setDraggedId(null); setDragOverCol(null); }}
-                        className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-all select-none ${locked ? '' : 'cursor-grab active:cursor-grabbing'} ${overdue ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200'} ${draggedId === order.id ? 'opacity-40' : ''}`}
+                        onClick={(e) => { if (!(e.target as HTMLElement).closest('button, a')) setDetailId(order.id); }}
+                        className={`cursor-pointer bg-white rounded-xl border shadow-sm hover:shadow-md transition-all select-none ${locked ? '' : 'active:cursor-grabbing'} ${overdue ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200'} ${draggedId === order.id ? 'opacity-40' : ''}`}
                       >
                         <div className="p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <Link to={`/employee/orders/${order.id}`} className="text-xs font-semibold text-slate-500 font-mono hover:text-emerald-700 hover:underline">{order.code}</Link>
+                            <button type="button" onClick={() => setDetailId(order.id)} aria-label={`Detail ${order.code}`} className="text-xs font-semibold text-slate-500 font-mono hover:text-emerald-700 hover:underline">{order.code}</button>
                             <StatusBadge status={order.payment_status} size="sm" />
                           </div>
 
@@ -252,6 +255,8 @@ export default function OrderManagement() {
           })}
         </div>
       )}
+
+      {detailId && <OrderDetailSheet orderId={detailId} onClose={() => setDetailId(null)} />}
 
       {payFor && (
         <PaymentModal

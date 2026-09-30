@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 
 import { inputClassEmerald } from '@/components/shared/FormField';
 import { Modal } from '@/components/shared/Modal';
+import { PaymentInstructions } from '@/features/payment-info/PaymentInstructions';
+import { usePaymentInfo } from '@/features/payment-info/hooks';
 import { pesanError } from '@/lib/errors';
 import { formatRupiah } from '@/lib/format';
 import { METODE_BAYAR, type PaymentMethod } from './api';
@@ -10,6 +12,7 @@ import { useRecordPayment } from './hooks';
 
 export function PaymentModal({ orderId, code, sisa, onClose, onPaid }: { orderId: string; code: string; sisa: number; onClose: () => void; onPaid?: (amount: number) => void }) {
   const record = useRecordPayment();
+  const info = usePaymentInfo();
   const [text, setText] = useState(String(sisa));
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const amount = Math.round(Number(text.replace(/\D/g, '')) || 0);
@@ -61,6 +64,9 @@ export function PaymentModal({ orderId, code, sisa, onClose, onPaid }: { orderId
             </button>
           ))}
         </div>
+        {method !== 'cash' && info.data && (
+          <PaymentInstructions info={info.data} show={method === 'qris' ? 'qris' : 'transfer'} qrSize={170} />
+        )}
       </div>
     </Modal>
   );

@@ -302,6 +302,7 @@ export type Database = {
           completed_at: string | null;
           discount_label: string | null;
           client_key: string | null;
+          track_token: string;
         };
         Insert: {
           id?: string;
@@ -324,6 +325,7 @@ export type Database = {
           completed_at?: string | null;
           discount_label?: string | null;
           client_key?: string | null;
+          track_token?: string;
         };
         Update: {
           id?: string;
@@ -346,6 +348,7 @@ export type Database = {
           completed_at?: string | null;
           discount_label?: string | null;
           client_key?: string | null;
+          track_token?: string;
         };
         Relationships: [
           {
@@ -377,6 +380,36 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      payment_info: {
+        Row: {
+          id: boolean;
+          qris_payload: string | null;
+          qris_merchant: string | null;
+          banks: Json;
+          note: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          qris_payload?: string | null;
+          qris_merchant?: string | null;
+          banks?: Json;
+          note?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          qris_payload?: string | null;
+          qris_merchant?: string | null;
+          banks?: Json;
+          note?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
       };
       payments: {
         Row: {
@@ -608,6 +641,10 @@ export type Database = {
           p_promo_code?: string;
         };
         Returns: string;
+      };
+      track_order: {
+        Args: { p_token: string };
+        Returns: Json;
       };
       admin_report: {
         Args: { p_branch?: string; p_from: string; p_to: string; p_tz?: string };

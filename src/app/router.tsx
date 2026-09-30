@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { RequireRole } from '@/features/auth/RequireRole';
 import LoginPage from '@/pages/LoginPage';
+import TrackPage from '@/pages/TrackPage';
 
 /**
  * Halaman dimuat malas (code splitting): browser hanya mengunduh kode halaman
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
     HydrateFallback: PageLoader,
     children: [
       { path: '/', Component: LoginPage },
+      { path: '/track/:token', Component: TrackPage },
       {
         element: <RequireRole role="admin" />,
         children: [
@@ -33,6 +35,7 @@ export const router = createBrowserRouter([
               { path: 'commissions', lazy: lazyRoute(() => import('@/pages/admin/CommissionTracking')) },
               { path: 'membership', lazy: lazyRoute(() => import('@/pages/admin/MembershipPage')) },
               { path: 'promotions', lazy: lazyRoute(() => import('@/pages/admin/PromotionsPage')) },
+              { path: 'settings', lazy: lazyRoute(() => import('@/pages/admin/SettingsPage')) },
             ],
           },
         ],
