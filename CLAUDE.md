@@ -87,9 +87,9 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M0.5**: Restrukturisasi folder (feature-based), alias `@/`, hapus 26 komponen shadcn & 22 dependency tak terpakai, Modal/StatusBadge dibangun ulang di atas shadcn, lazy route.
 - [x] **M1**: Skema Supabase + RLS per cabang + seed demo + login email/password + route guard per role. (Sign-up publik dimatikan; staf dibuat admin lewat Dashboard.)
 - [x] **M2**: CRUD cabang, layanan, karyawan dari Supabase (TanStack Query, react-hook-form). Karyawan baru dibuat lewat Edge Function `create-staff` dan `reset-staff-password` (butuh deploy, lihat README).
-- [ ] **M3**: Alur inti: cari/tambah pelanggan > order baru > kanban status > pembayaran > struk. *(Titik "layak dipamerkan" pertama.)*
+- [x] **M3**: Alur inti: cari/tambah pelanggan > order baru > kanban status > pembayaran > struk. *(Titik "layak dipamerkan" pertama.)*
   - [x] **M3a**: pelanggan (cari/tambah/ubah), order baru multi-layanan lewat RPC, pembayaran (lunas/DP/nanti + pembayaran susulan), struk cetak + tautan WhatsApp.
-  - [ ] **M3b**: papan pesanan (kanban status) dan daftar pesanan nyata, dasbor karyawan dan ringkasan harian dari query, hapus `legacyBranchId`/mockData karyawan.
+  - [x] **M3b**: papan pesanan (kanban) nyata, dasbor karyawan, ringkasan harian (CSV + cetak), lonceng notifikasi nyata, `legacyBranchId`/mockData karyawan dihapus.
 - [ ] **M4**: Dashboard & laporan dari query nyata (bukan angka statis), export CSV.
 - [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
 - [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait).
@@ -108,7 +108,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Fungsi helper RLS (`is_staff`, `is_admin`, `my_branch_id`) ada di schema `private` (tidak terekspos Data API).
 - Uang disimpan sebagai bigint Rupiah. Kolom uang di `orders` dilindungi trigger (klien tidak bisa memalsukan total/paid_amount); harga item di-snapshot dari `services` oleh trigger; `paid_amount`/`payment_status` dihitung dari `payments`.
 - Celah diskon sembarang sudah ditutup di M3a: `orders`, `order_items`, dan `payments` tidak bisa di-insert dari client; pembuatan order dan diskon lewat RPC `create_order` (lihat Catatan M3a).
-- `legacyBranchId` di `AuthContext` hanyalah jembatan sementara untuk halaman karyawan yang masih memakai mockData, hapus di M3b.
+- Halaman karyawan sudah tidak memakai mockData (M3b). Sisa mockData hanya dipakai halaman admin sampai M4/M6.
 - Komponen shadcn `Input`/`Textarea` sudah diberi `forwardRef` (React 18) supaya cocok dengan `register()` react-hook-form. Komponen lain yang dipakai dengan `register` harus diperlakukan sama.
 
 ## Catatan M2
@@ -132,3 +132,13 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Statistik pelanggan lewat view `customer_stats` (`security_invoker`): karyawan hanya melihat angka dari cabangnya.
 - Struk dicetak dengan `window.print()`; layout memakai varian `print:` Tailwind untuk menyembunyikan sidebar dan tombol. QR tracking menyusul di M5.
 - Pola RPC di frontend: argumen bertipe `type` (bukan `interface`) supaya cocok dengan tipe `Json` dari Supabase.
+
+## Catatan M3b
+
+- **Tanpa realtime**: papan, dasbor, dan lonceng memakai polling TanStack Query (papan dan lonceng 30 dtk, dasbor/ringkasan 60 dtk). Realtime Supabase bisa ditambah nanti bila ada kebutuhan nyata.
+- `checkMove` di `features/orders/api.ts` hanya cermin aturan trigger `orders_status_rules` untuk memberi pesan cepat di UI; server tetap yang berwenang. Selesai dari kartu belum lunas membuka `PaymentModal`, dan pesanan otomatis diselesaikan hanya jika pembayaran melunasi sisa.
+- Kartu Selesai terkunci (tidak bisa mundur, tidak bisa diseret). Kolom Selesai hanya memuat 2 hari terakhir.
+- Batas hari (dasbor/ringkasan) memakai jam lokal perangkat lewat `dayRange()`. Pendapatan = pembayaran yang DITERIMA hari itu (`payments.paid_at`), bukan total pesanan; piutang = sisa tagihan pesanan yang belum selesai.
+- `lib/csv.ts`: pemisah titik koma dan BOM UTF-8 supaya terbuka benar di Excel Indonesia; sel yang diawali `= + - @` diberi `'` di depan (mencegah formula injection).
+- Migrasi `20260929000400_m3b_indexes.sql` menambah indeks untuk query harian. Jalankan `npx supabase db push`.
+- Bagian yang belum ada: lonceng tidak menyimpan status "sudah dibaca" (daftar dihitung dari pesanan aktif).

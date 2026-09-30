@@ -15,11 +15,6 @@ export interface CurrentUser {
   branchId: string | null;
   branchName: string | null;
   branchCode: string | null;
-  /**
-   * SEMENTARA (M1 ke M3): id cabang gaya data contoh ('b1' sampai 'b4') untuk halaman karyawan yang
-   * masih membaca mockData. Dihapus saat halaman-halaman itu pindah ke Supabase.
-   */
-  legacyBranchId: string | undefined;
 }
 
 type AccessIssue = 'no-profile' | 'inactive' | 'unassigned' | 'load-error';
@@ -30,9 +25,6 @@ const NOTICES: Record<AccessIssue, string> = {
   unassigned: 'Akun Anda belum ditugaskan ke cabang. Hubungi administrator.',
   'load-error': 'Data akun tidak dapat dimuat. Periksa koneksi lalu coba lagi.',
 };
-
-// TODO(M3): hapus bersama mockData
-const LEGACY_BRANCH_IDS: Record<string, string> = { DPS: 'b1', KTA: 'b2', JBR: 'b3', UBD: 'b4' };
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -109,7 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       branchId: data.branch_id,
       branchName: data.branches?.name ?? null,
       branchCode: data.branches?.code ?? null,
-      legacyBranchId: data.branches?.code ? LEGACY_BRANCH_IDS[data.branches.code] : undefined,
     });
     setNotice(null);
     setLoading(false);

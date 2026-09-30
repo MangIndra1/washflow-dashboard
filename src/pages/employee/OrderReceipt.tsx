@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle, MessageSquare, Plus, Printer, Wallet } from 'lucide-react';
 
 import { ErrorPanel } from '@/components/shared/QueryStatus';
-import { Modal } from '@/components/shared/Modal';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { inputClassEmerald } from '@/components/shared/FormField';
-import { METODE_BAYAR, type OrderDetail, type PaymentMethod } from '@/features/orders/api';
-import { useOrderDetail, useRecordPayment } from '@/features/orders/hooks';
+import { METODE_BAYAR, type OrderDetail } from '@/features/orders/api';
+import { PaymentModal } from '@/features/orders/PaymentModal';
+import { useOrderDetail } from '@/features/orders/hooks';
 import { pesanError } from '@/lib/errors';
 import { formatAngka, formatRupiah, formatTanggalJam } from '@/lib/format';
 import { linkWhatsApp } from '@/lib/whatsapp';
@@ -162,64 +160,7 @@ export default function OrderReceipt() {
         </div>
       </div>
 
-      {payOpen && <PaymentModal order={order} sisa={sisa} onClose={() => setPayOpen(false)} />}
+      {payOpen && <PaymentModal orderId={order.id} code={order.code} sisa={sisa} onClose={() => setPayOpen(false)} />}
     </div>
-  );
-}
-
-function PaymentModal({ order, sisa, onClose }: { order: OrderDetail; sisa: number; onClose: () => void }) {
-  const record = useRecordPayment();
-  const [text, setText] = useState(String(sisa));
-  const [method, setMethod] = useState<PaymentMethod>('cash');
-  const amount = Math.round(Number(text.replace(/\D/g, '')) || 0);
-  const error = amount <= 0 ? 'Isi jumlah pembayaran' : amount > sisa ? `Melebihi sisa tagihan (${formatRupiah(sisa)})` : null;
-
-  const submit = async () => {
-    if (error) return;
-    try {
-      await record.mutateAsync({ orderId: order.id, amount, method });
-      toast.success(amount === sisa ? 'Pembayaran tercatat. Pesanan lunas.' : 'Pembayaran tercatat.');
-      onClose();
-    } catch (e) {
-      toast.error(pesanError(e, 'Gagal mencatat pembayaran.'));
-    }
-  };
-
-  return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title="Catat Pembayaran"
-      subtitle={`${order.code}, sisa ${formatRupiah(sisa)}`}
-      size="sm"
-      footer={
-        <div className="flex items-center justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
-          <button type="button" onClick={submit} disabled={!!error || record.isPending} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-60">
-            {record.isPending ? 'Menyimpan...' : 'Simpan Pembayaran'}
-          </button>
-        </div>
-      }
-    >
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="pay-amount" className="text-sm text-slate-700 block mb-1.5" style={{ fontWeight: 500 }}>Jumlah</label>
-          <input id="pay-amount" inputMode="numeric" className={inputClassEmerald} value={text} onChange={(e) => setText(e.target.value.replace(/[^\d]/g, ''))} />
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs text-slate-500">{amount > 0 ? formatRupiah(amount) : ''}</p>
-            <button type="button" onClick={() => setText(String(sisa))} className="text-xs text-emerald-700 hover:underline">Bayar semua sisa</button>
-          </div>
-          {error && text !== '' && <p className="text-xs text-red-600 mt-1">{error}</p>}
-        </div>
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Metode pembayaran">
-          {(Object.keys(METODE_BAYAR) as PaymentMethod[]).map((m) => (
-            <button key={m} type="button" onClick={() => setMethod(m)} aria-pressed={method === m}
-              className={`py-2 rounded-lg border text-xs transition-colors ${method === m ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              {METODE_BAYAR[m]}
-            </button>
-          ))}
-        </div>
-      </div>
-    </Modal>
   );
 }

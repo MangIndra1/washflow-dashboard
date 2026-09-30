@@ -83,3 +83,104 @@ export async function fetchOrderDetail(id: string): Promise<OrderDetail | null> 
   if (error) throw error;
   return data as OrderDetail | null;
 }
+
+// ─── Papan pesanan, dasbor, ringkasan harian ─────────────────────────────────
+
+export interface BoardOrder {
+  id: string;
+  code: string;
+  status: OrderStatus;
+  payment_status: Tables<'orders'>['payment_status'];
+  total: number;
+  paid_amount: number;
+  due_at: string | null;
+  created_at: string;
+  completed_at: string | null;
+  notes: string | null;
+  customer: { name: string; phone: string } | null;
+  order_items: { service_name: string; quantity: number; unit: string; line_total: number | null }[];
+  cashier: { full_name: string } | null;
+}
+
+const BOARD_SELECT = `id, code, status, payment_status, total, paid_amount, due_at, created_at, completed_at, notes,
+  customer:customers(name, phone),
+  cashier:profiles!orders_cashier_id_fkey(full_name),
+  order_items(service_name, quantity, unit, line_total)`;
+
+/** Semua pesanan yang belum selesai (RLS membatasi karyawan ke cabangnya). */
+export async function fetchActiveOrders(): Promise<BoardOrder[]> {
+  const { data, error } = await supabase
+    .from('orders').select(BOARD_SELECT).neq('status', 'completed').order('due_at', { ascending: true }).limit(500);
+  if (error) throw error;
+  return data as unknown as BoardOrder[];
+}
+
+/** Pesanan yang selesai dalam N hari terakhir, untuk kolom Selesai di papan. */
+export async function fetchRecentCompleted(days = 2): Promise<BoardOrder[]> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from('orders').select(BOARD_SELECT).eq('status', 'completed').gte('completed_at', since)
+    .order('completed_at', { ascending: false }).limit(100);
+  if (error) throw error;
+  return data as unknown as BoardOrder[];
+}
+
+/** Pesanan yang dibuat atau diselesaikan dalam rentang [from, to). */
+export async function fetchOrdersInRange(from: string, to: string): Promise<BoardOrder[]> {
+  const { data, error } = await supabase
+    .from('orders').select(BOARD_SELECT)
+    .or(`and(created_at.gte.${from},created_at.lt.${to}),and(completed_at.gte.${from},completed_at.lt.${to})`)
+    .order('created_at', { ascending: false }).limit(1000);
+  if (error) throw error;
+  return data as unknown as BoardOrder[];
+}
+
+export interface DayPayment {
+  id: string;
+  order_id: string;
+  amount: number;
+  method: PaymentMethod;
+  paid_at: string;
+}
+
+export async function fetchPaymentsInRange(from: string, to: string): Promise<DayPayment[]> {
+  const { data, error } = await supabase
+    .from('payments').select('id, order_id, amount, method, paid_at').gte('paid_at', from).lt('paid_at', to)
+    .order('paid_at', { ascending: false }).limit(2000);
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
+  const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+  if (error) throw error;
+}
+
+// ─── Aturan status (cermin trigger database; server tetap yang berwenang) ────
+export const STATUS_ORDER: OrderStatus[] = ['received', 'washing', 'drying', 'ironing', 'ready', 'completed'];
+
+export function nextStatus(s: OrderStatus): OrderStatus | null {
+  const i = STATUS_ORDER.indexOf(s);
+  return i >= 0 && i < STATUS_ORDER.length - 1 ? STATUS_ORDER[i + 1] : null;
+}
+
+export function prevStatus(s: OrderStatus): OrderStatus | null {
+  const i = STATUS_ORDER.indexOf(s);
+  return i > 0 && s !== 'completed' ? STATUS_ORDER[i - 1] : null;
+}
+
+export type MoveCheck = { ok: true } | { ok: false; needsPayment?: boolean; message: string };
+
+export function checkMove(o: Pick<BoardOrder, 'status' | 'payment_status'>, target: OrderStatus): MoveCheck {
+  if (o.status === target) return { ok: false, message: '' };
+  if (o.status === 'completed') return { ok: false, message: 'Pesanan yang sudah selesai tidak bisa diubah.' };
+  if (target === 'completed') {
+    if (o.status !== 'ready') return { ok: false, message: 'Pesanan harus berstatus Siap Diambil sebelum diselesaikan.' };
+    if (o.payment_status !== 'paid') return { ok: false, needsPayment: true, message: 'Pesanan belum lunas. Catat pembayaran dulu.' };
+  }
+  return { ok: true };
+}
+
+export function isOverdue(o: Pick<BoardOrder, 'status' | 'due_at'>, now = Date.now()): boolean {
+  return o.status !== 'completed' && !!o.due_at && new Date(o.due_at).getTime() < now;
+}

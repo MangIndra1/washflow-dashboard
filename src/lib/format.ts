@@ -48,3 +48,15 @@ export function formatTanggalJam(value: string | Date): string {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   }).format(d);
 }
+
+/** "Rabu, 30 September 2026" */
+export function formatTanggalLengkap(value: Date = new Date()): string {
+  return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(value);
+}
+
+/** "14.30" */
+export function formatJam(value: string | Date): string {
+  const d = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return '-';
+  return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(d);
+}
