@@ -53,3 +53,19 @@ export function periodTag(p: Period): string {
   const a = ymd(p.start); const b = ymd(p.endInclusive);
   return a === b ? a : `${a}_sd_${b}`;
 }
+
+/** N hari terakhir termasuk hari ini (jam lokal perangkat). */
+export function lastDays(n: number, now = new Date()): Period {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (n - 1));
+  const next = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  return { from: start.toISOString(), to: next.toISOString(), start, endInclusive: today, days: n };
+}
+
+/** Tanggal 1 bulan ini sampai hari ini. */
+export function monthToDate(now = new Date()): Period {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const next = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  return { from: start.toISOString(), to: next.toISOString(), start, endInclusive: today, days: today.getDate() };
+}

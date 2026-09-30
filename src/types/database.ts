@@ -609,6 +609,10 @@ export type Database = {
         };
         Returns: string;
       };
+      admin_report: {
+        Args: { p_branch?: string; p_from: string; p_to: string; p_tz?: string };
+        Returns: Json;
+      };
       quote_order: {
         Args: { p_customer_id: string; p_items: Json; p_promo_code?: string };
         Returns: Json;

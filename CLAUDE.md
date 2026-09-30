@@ -90,7 +90,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M3**: Alur inti: cari/tambah pelanggan > order baru > kanban status > pembayaran > struk. *(Titik "layak dipamerkan" pertama.)*
   - [x] **M3a**: pelanggan (cari/tambah/ubah), order baru multi-layanan lewat RPC, pembayaran (lunas/DP/nanti + pembayaran susulan), struk cetak + tautan WhatsApp.
   - [x] **M3b**: papan pesanan (kanban) nyata, dasbor karyawan, ringkasan harian (CSV + cetak), lonceng notifikasi nyata, `legacyBranchId`/mockData karyawan dihapus.
-- [ ] **M4**: Dashboard & laporan dari query nyata (bukan angka statis), export CSV.
+- [x] **M4**: Dasbor admin dan Laporan Keuangan dari query nyata (RPC `admin_report`), ekspor Excel per periode/cabang, lonceng admin nyata.
 - [ ] **M5**: Halaman `/track/:token` publik + QR di struk, webhook n8n ke WA saat status "siap". *(Fitur pembeda utama.)*
 - [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait).
 - [ ] **M7** Deploy, case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
@@ -148,3 +148,12 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Tombol "Ekspor Laporan" di Ringkasan Harian membuka `ExportDialog`: periode Hari ini, Kemarin, 7 hari terakhir, Bulan ini, Bulan lalu, atau rentang tanggal (maks 92 hari, jam lokal perangkat, logika di `features/orders/period.ts`). Isi laporan = pesanan yang DIBUAT pada periode itu, plus pembayaran yang diterima pada periode itu.
 - Berkas `.xlsx` dibuat di browser oleh `lib/xlsx.ts` dengan `exceljs`, dimuat lewat `import()` hanya saat tombol diklik (chunk terpisah, sekitar 270 KB gzip). Tiga sheet: Ringkasan, Pesanan, Pembayaran. Uang disimpan sebagai angka berformat Rupiah, telepon sebagai teks (nol di depan aman), baris total memakai `SUBTOTAL` supaya mengikuti filter. Jam Excel digeser ke jam lokal karena Excel tidak punya zona waktu.
 - Data diambil per halaman 1000 baris (`readAll`, batas 20.000) supaya lolos batas default PostgREST. CSV tetap ada sebagai tautan kecil di dialog (`lib/csv.ts`, dengan penjaga formula injection).
+
+## Catatan M4
+
+- Semua angka laporan admin datang dari satu RPC `admin_report(p_from, p_to, p_branch, p_tz)` (migrasi `20260929000500_m4_reports.sql`): total, per hari, per cabang, per layanan, dan periode pembanding sepanjang sama persis sebelum `p_from`. Agregasi di database, jadi ukuran data tidak membebani browser. Fungsi berjalan sebagai pemanggil (RLS tetap berlaku) dan menolak non-admin. Zona waktu harian dikirim dari perangkat (`Intl`), bukan dikunci ke satu zona.
+- **Definisi uang (konsisten di semua halaman)**: Pendapatan = pembayaran diterima (`payments.paid_at`, dasar kas). Nilai pesanan = total pesanan yang dibuat pada periode. Belum terbayar = sisa tagihan pesanan yang dibuat pada periode. `branch_stats.revenue_30d` di halaman Cabang (M2) masih menjumlahkan total pesanan, bukan pembayaran; samakan bila kelak membingungkan.
+- **Tidak ada laba/pengeluaran**: mock lama menampilkan grafik laba dan pengeluaran, tetapi tidak ada tabel pengeluaran. Dihapus, bukan dipalsukan. Kalau klien butuh laba, buat tabel `expenses` dulu (kandidat M6).
+- Lonceng admin = pesanan terlambat semua cabang + cabang berstatus Perbaikan. Kolom "Stok menipis" menunggu inventaris nyata (M6).
+- Halaman yang masih memakai mockData: Inventaris, Keanggotaan, Promo, Komisi (M6).
+- Ekspor Excel admin memakai `buildLaporanXlsx` yang sama dengan karyawan (`showBranch` menambah kolom Cabang), maksimal rentang 366 hari.

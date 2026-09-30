@@ -18,12 +18,14 @@ export interface LaporanInput {
   period: Period;
   orders: BoardOrder[];
   payments: ExportPayment[];
+  /** Tampilkan kolom Cabang (laporan semua cabang). */
+  showBranch?: boolean;
 }
 
 /** Membuat berkas .xlsx di browser. exceljs (besar) dimuat hanya saat dipanggil. */
 export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
   const ExcelJS = (await import('exceljs')).default;
-  const { branchName, period, orders, payments } = input;
+  const { branchName, period, orders, payments, showBranch } = input;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'WashFlow';
   wb.created = new Date();
@@ -52,7 +54,7 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
   // ── Sheet Pesanan
   const wp = wb.addWorksheet('Pesanan', { views: [{ state: 'frozen', ySplit: 1 }] });
   wp.columns = [
-    { header: 'Kode', key: 'code' }, { header: 'Tanggal', key: 'date', style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'Kode', key: 'code' }, ...(showBranch ? [{ header: 'Cabang', key: 'branch' }] : []), { header: 'Tanggal', key: 'date', style: { numFmt: 'dd/mm/yyyy' } },
     { header: 'Jam', key: 'time', style: { numFmt: 'hh.mm' } }, { header: 'Pelanggan', key: 'name' },
     { header: 'Telepon', key: 'phone', style: { numFmt: '@' } }, { header: 'Layanan', key: 'svc' }, { header: 'Kasir', key: 'cashier' },
     { header: 'Total', key: 'total', style: { numFmt: RUPIAH } }, { header: 'Dibayar', key: 'paid', style: { numFmt: RUPIAH } },
@@ -61,7 +63,7 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
   for (const o of orders) {
     const at = localCell(o.created_at);
     wp.addRow({
-      code: o.code, date: dayCell(new Date(o.created_at)), time: new Date(Date.UTC(1899, 11, 30, at.getUTCHours(), at.getUTCMinutes())),
+      code: o.code, branch: o.branch?.name ?? '', date: dayCell(new Date(o.created_at)), time: new Date(Date.UTC(1899, 11, 30, at.getUTCHours(), at.getUTCMinutes())),
       name: o.customer?.name ?? '', phone: o.customer?.phone ?? '',
       svc: o.order_items.map((i) => `${i.service_name} (${i.quantity} ${i.unit})`).join(', '),
       cashier: o.cashier?.full_name ?? '', total: o.total, paid: o.paid_amount, left: Math.max(0, o.total - o.paid_amount),
@@ -70,19 +72,23 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
   }
   header(wp.getRow(1));
   const last = orders.length + 1;
+  const colOf = (key: string) => wp.getColumn(key).letter;
   wp.getColumn('phone').eachCell((c, r) => { if (r > 1) c.numFmt = '@'; });
   for (let r = 2; r <= last; r++) {
-    const pay = wp.getCell(`K${r}`); const st = orders[r - 2].payment_status;
+    const pay = wp.getCell(`${colOf('pay')}${r}`); const st = orders[r - 2].payment_status;
     pay.font = { color: { argb: st === 'paid' ? 'FF047857' : st === 'partial' ? 'FFB45309' : 'FFB91C1C' }, bold: true };
-    pay.alignment = { horizontal: 'center' }; wp.getCell(`L${r}`).alignment = { horizontal: 'center' };
+    pay.alignment = { horizontal: 'center' }; wp.getCell(`${colOf('status')}${r}`).alignment = { horizontal: 'center' };
     if (r % 2 === 1) wp.getRow(r).eachCell((c) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } }; });
   }
   autoWidth(wp);
   if (orders.length > 0) {
-    wp.autoFilter = { from: 'A1', to: `L${last}` };
+    wp.autoFilter = { from: 'A1', to: `${colOf('status')}${last}` };
     const tot = wp.addRow({ code: 'Total (mengikuti filter)' });
-    for (const col of ['H', 'I', 'J']) tot.getCell(col).value = { formula: `SUBTOTAL(109,${col}2:${col}${last})`, result: 0 };
-    tot.font = { bold: true }; tot.getCell('H').numFmt = tot.getCell('I').numFmt = tot.getCell('J').numFmt = RUPIAH;
+    for (const key of ['total', 'paid', 'left']) {
+      const col = colOf(key); const c = tot.getCell(col);
+      c.value = { formula: `SUBTOTAL(109,${col}2:${col}${last})`, result: 0 }; c.numFmt = RUPIAH;
+    }
+    tot.font = { bold: true };
     tot.eachCell((c) => { c.border = { top: { style: 'thin', color: { argb: 'FF94A3B8' } } }; });
     wp.getColumn('code').width = Math.max(wp.getColumn('code').width ?? 0, 24);
   }

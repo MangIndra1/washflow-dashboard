@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router';
-import type { ReactElement } from 'react';
 import {
   LayoutDashboard, Building2, Users, Tag, BarChart3,
   Package, Banknote, Star, Percent, LogOut,
-  Bell, ChevronDown, KeyRound, Waves, Menu, X, AlertCircle, ShoppingBag, CheckCircle,
+  Bell, ChevronDown, KeyRound, Waves, Menu, X, AlertCircle, Wrench,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
-import { notifications } from '@/data/mockData';
+import { useBranches } from '@/features/branches/hooks';
+import { useOverdueOrders } from '@/features/reports/hooks';
+import { formatTanggalJam } from '@/lib/format';
 
 interface NavItem {
   to: string;
@@ -49,11 +50,11 @@ const navSections: { label: string; items: NavItem[] }[] = [
   },
 ];
 
-const notifIcon: Record<string, ReactElement> = {
+interface Alert { id: string; icon: 'overdue' | 'maintenance'; message: string; detail?: string; to: string }
+
+const alertIcon = {
   overdue: <AlertCircle className="h-4 w-4 text-red-500" />,
-  low_stock: <Package className="h-4 w-4 text-amber-500" />,
-  new_order: <ShoppingBag className="h-4 w-4 text-blue-500" />,
-  completed: <CheckCircle className="h-4 w-4 text-emerald-500" />,
+  maintenance: <Wrench className="h-4 w-4 text-amber-500" />,
 };
 
 export default function AdminLayout() {
@@ -64,7 +65,19 @@ export default function AdminLayout() {
   const [showProfile, setShowProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const overdue = useOverdueOrders(5);
+  const branches = useBranches();
+  const alerts: Alert[] = [
+    ...(overdue.data?.rows ?? []).map((o): Alert => ({
+      id: o.id, icon: 'overdue', message: `${o.code} (${o.customer?.name ?? 'pelanggan'}) terlambat di ${o.branch?.name ?? 'cabang'}`,
+      detail: `Batas ${formatTanggalJam(o.due_at)}`, to: '/admin/reports',
+    })),
+    ...(branches.data ?? []).filter((b) => b.status === 'maintenance').map((b): Alert => ({
+      id: `m-${b.id}`, icon: 'maintenance', message: `${b.name} sedang dalam perbaikan`, to: '/admin/branches',
+    })),
+  ];
+  const extra = Math.max(0, (overdue.data?.count ?? 0) - (overdue.data?.rows.length ?? 0));
+  const unreadCount = (overdue.data?.count ?? 0) + alerts.filter((a) => a.icon === 'maintenance').length;
 
   const handleLogout = () => {
     logout();
@@ -177,7 +190,7 @@ export default function AdminLayout() {
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-semibold leading-none">
-                    {unreadCount}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
@@ -186,19 +199,20 @@ export default function AdminLayout() {
                 <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100">
                     <p className="text-sm font-semibold text-slate-900">Notifikasi</p>
-                    <span className="text-xs text-blue-600 cursor-pointer font-medium">Tandai semua dibaca</span>
+                    <span className="text-xs text-slate-400">{unreadCount} perlu perhatian</span>
                   </div>
                   <div className="divide-y divide-slate-50">
-                    {notifications.map(n => (
-                      <div key={n.id} className={`flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer ${!n.read ? 'bg-blue-50/40' : ''}`}>
-                        <div className="mt-0.5 flex-shrink-0">{notifIcon[n.type]}</div>
+                    {alerts.length === 0 && <p className="p-4 text-xs text-slate-400">Tidak ada yang perlu ditangani.</p>}
+                    {alerts.map(n => (
+                      <button key={n.id} type="button" onClick={() => { setShowNotif(false); navigate(n.to); }} className="flex w-full items-start gap-3 p-3 text-left hover:bg-slate-50">
+                        <div className="mt-0.5 flex-shrink-0">{alertIcon[n.icon]}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-slate-700 font-medium leading-snug">{n.message}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{n.time}</p>
+                          {n.detail && <p className="text-xs text-slate-400 mt-0.5">{n.detail}</p>}
                         </div>
-                        {!n.read && <div className="h-2 w-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
-                      </div>
+                      </button>
                     ))}
+                    {extra > 0 && <p className="p-3 text-xs text-slate-500">dan {extra} pesanan terlambat lainnya</p>}
                   </div>
                 </div>
               )}

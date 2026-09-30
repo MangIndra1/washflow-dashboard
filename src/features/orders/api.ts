@@ -100,11 +100,13 @@ export interface BoardOrder {
   customer: { name: string; phone: string } | null;
   order_items: { service_name: string; quantity: number; unit: string; line_total: number | null }[];
   cashier: { full_name: string } | null;
+  branch: { name: string } | null;
 }
 
 const BOARD_SELECT = `id, code, status, payment_status, total, paid_amount, due_at, created_at, completed_at, notes,
   customer:customers(name, phone),
   cashier:profiles!orders_cashier_id_fkey(full_name),
+  branch:branches!orders_branch_id_fkey(name),
   order_items(service_name, quantity, unit, line_total)`;
 
 /** Semua pesanan yang belum selesai (RLS membatasi karyawan ke cabangnya). */
@@ -208,14 +210,19 @@ async function readAll<T>(page: (from: number, to: number) => PromiseLike<{ data
 }
 
 /** Pesanan yang DIBUAT dalam [from, to), urut waktu. */
-export function fetchCreatedInRange(from: string, to: string): Promise<BoardOrder[]> {
-  return readAll<BoardOrder>((a, b) =>
-    supabase.from('orders').select(BOARD_SELECT).gte('created_at', from).lt('created_at', to)
-      .order('created_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: BoardOrder[] | null; error: unknown }>);
+export function fetchCreatedInRange(from: string, to: string, branchId?: string): Promise<BoardOrder[]> {
+  return readAll<BoardOrder>((a, b) => {
+    let q = supabase.from('orders').select(BOARD_SELECT).gte('created_at', from).lt('created_at', to);
+    if (branchId) q = q.eq('branch_id', branchId);
+    return q.order('created_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: BoardOrder[] | null; error: unknown }>;
+  });
 }
 
-export function fetchExportPayments(from: string, to: string): Promise<ExportPayment[]> {
-  return readAll<ExportPayment>((a, b) =>
-    supabase.from('payments').select('id, order_id, amount, method, paid_at, order:orders(code)')
-      .gte('paid_at', from).lt('paid_at', to).order('paid_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: ExportPayment[] | null; error: unknown }>);
+export function fetchExportPayments(from: string, to: string, branchId?: string): Promise<ExportPayment[]> {
+  return readAll<ExportPayment>((a, b) => {
+    let q = supabase.from('payments').select('id, order_id, amount, method, paid_at, order:orders!inner(code, branch_id)')
+      .gte('paid_at', from).lt('paid_at', to);
+    if (branchId) q = q.eq('order.branch_id', branchId);
+    return q.order('paid_at', { ascending: true }).order('id').range(a, b) as unknown as PromiseLike<{ data: ExportPayment[] | null; error: unknown }>;
+  });
 }

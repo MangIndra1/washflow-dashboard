@@ -1,157 +1,196 @@
-import { useState } from 'react';
-import { Download, Calendar, Banknote, TrendingUp, ShoppingBag, CreditCard, Filter } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { Download, Banknote, TrendingUp, ShoppingBag, CreditCard, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend,
 } from 'recharts';
-import { orders, branchPerformance } from '@/data/mockData';
+
+import { ErrorPanel } from '@/components/shared/QueryStatus';
+import { inputClass, selectClass } from '@/components/shared/FormField';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { formatRupiah, formatRupiahRingkas, formatAngka, formatTanggal } from '@/lib/format';
+import { useBranches } from '@/features/branches/hooks';
+import { fetchCreatedInRange, fetchExportPayments } from '@/features/orders/api';
+import { lastDays, monthToDate, periodTag, resolvePeriod, ymd, type Period } from '@/features/orders/period';
+import { useAdminReport, useOrderPage } from '@/features/reports/hooks';
+import { labelHari, pctChange } from '@/features/reports/util';
+import { pesanError } from '@/lib/errors';
+import { formatAngka, formatRupiah, formatRupiahRingkas, formatTanggalJam } from '@/lib/format';
+import { buildLaporanXlsx, downloadBlob } from '@/lib/xlsx';
 
-const monthlyData = [
-  { month: 'Sep', revenue: 56800000, expenses: 24000000, profit: 32800000, orders: 820 },
-  { month: 'Okt', revenue: 62400000, expenses: 27000000, profit: 35400000, orders: 940 },
-  { month: 'Nov', revenue: 69200000, expenses: 28400000, profit: 40800000, orders: 1050 },
-  { month: 'Des', revenue: 77800000, expenses: 32000000, profit: 45800000, orders: 1180 },
-  { month: 'Jan', revenue: 70400000, expenses: 29600000, profit: 40800000, orders: 1050 },
-  { month: 'Feb', revenue: 83600000, expenses: 34400000, profit: 49200000, orders: 1240 },
-];
+type Key = '7d' | '30d' | '90d' | '180d' | 'month' | 'custom';
+const LABEL: Record<Key, string> = { '7d': '7 Hari', '30d': '30 Hari', '90d': '3 Bulan', '180d': '6 Bulan', month: 'Bulan Ini', custom: 'Kustom' };
+const MAX_DAYS = 366;
+const PAGE_SIZE = 20;
 
-type Period = '7d' | '30d' | '3m' | '6m';
+function periodFor(key: Key, from: string, to: string): Period | null {
+  switch (key) {
+    case '7d': return lastDays(7);
+    case '30d': return lastDays(30);
+    case '90d': return lastDays(90);
+    case '180d': return lastDays(180);
+    case 'month': return monthToDate();
+    case 'custom': return resolvePeriod('custom', from, to);
+  }
+}
+
+function Delta({ cur, prev, invert = false }: { cur: number; prev: number; invert?: boolean }) {
+  const c = pctChange(cur, prev);
+  if (c === undefined) return <p className="text-xs mt-1 text-slate-400">Belum ada pembanding periode sebelumnya</p>;
+  const good = invert ? c <= 0 : c >= 0;
+  return <p className={`text-xs mt-1 font-medium ${good ? 'text-emerald-600' : 'text-red-500'}`}>{c >= 0 ? '+' : ''}{c}% dibanding periode sebelumnya</p>;
+}
 
 export default function FinancialReports() {
-  const [period, setPeriod] = useState<Period>('30d');
-  const [filterBranch, setFilterBranch] = useState('');
-  const [filterPayment, setFilterPayment] = useState('');
+  const [key, setKey] = useState<Key>('30d');
+  const [from, setFrom] = useState(() => ymd(new Date()));
+  const [to, setTo] = useState(() => ymd(new Date()));
+  const [branchId, setBranchId] = useState('');
+  const [payment, setPayment] = useState('');
+  const [page, setPage] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
-  const filteredOrders = orders.filter(o => {
-    const matchBranch = !filterBranch || o.branch.toLowerCase() === filterBranch.toLowerCase();
-    const matchPayment = !filterPayment || o.paymentStatus === filterPayment;
-    return matchBranch && matchPayment;
-  });
+  const period = useMemo(() => periodFor(key, from, to), [key, from, to]);
+  const rangeError = !period ? 'Isi tanggal mulai dan akhir dengan benar (akhir tidak boleh sebelum mulai).'
+    : period.days > MAX_DAYS ? `Rentang terlalu panjang (maksimal ${MAX_DAYS} hari).` : null;
+  const valid = !!period && !rangeError;
+  // parameter dipertahankan walau rentang sementara tidak valid, supaya hook tidak berganti bentuk
+  const q = period ?? lastDays(30);
+  const branch = branchId || null;
 
-  const totalRevenue = filteredOrders.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + o.total, 0);
-  const unpaidRevenue = filteredOrders.filter(o => o.paymentStatus === 'unpaid').reduce((s, o) => s + o.total, 0);
-  const paidCount = filteredOrders.filter(o => o.paymentStatus === 'paid').length;
-  const avgOrderValue = paidCount > 0 ? totalRevenue / paidCount : 0;
+  const report = useAdminReport(q.from, q.to, branch);
+  const orders = useOrderPage({ from: q.from, to: q.to, branchId: branch, payment, page, pageSize: PAGE_SIZE });
+  const branches = useBranches();
+
+  const r = report.data;
+  const daily = (r?.daily ?? []).map((d) => ({ ...d, label: labelHari(d.day) }));
+  const avg = r && r.totals.orders > 0 ? Math.round(r.totals.value / r.totals.orders) : 0;
+  const pages = Math.max(1, Math.ceil((orders.data?.total ?? 0) / PAGE_SIZE));
+
+  const change = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setPage(0); };
+
+  const doExport = async () => {
+    if (!valid || !period) return;
+    setExporting(true);
+    try {
+      const [o, p] = await Promise.all([fetchCreatedInRange(period.from, period.to, branch ?? undefined), fetchExportPayments(period.from, period.to, branch ?? undefined)]);
+      const b = (branches.data ?? []).find((x) => x.id === branchId);
+      const blob = await buildLaporanXlsx({ branchName: b?.name ?? 'Semua Cabang', period, orders: o, payments: p, showBranch: !b });
+      downloadBlob(`laporan-${b?.code ?? 'semua-cabang'}-${periodTag(period)}.xlsx`, blob);
+      toast.success(o.length === 0 ? 'File dibuat, tetapi tidak ada pesanan pada periode ini.' : `Laporan ${o.length} pesanan diunduh.`);
+    } catch (e) {
+      toast.error(pesanError(e, 'Gagal membuat laporan. Coba lagi.'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const kpis = [
+    { title: 'Pendapatan Diterima', value: formatRupiah(r?.received.total ?? 0), icon: Banknote, color: 'bg-blue-100 text-blue-600', delta: r && <Delta cur={r.received.total} prev={r.prev.received} /> },
+    { title: 'Belum Terbayar', value: formatRupiah(r?.totals.outstanding ?? 0), icon: CreditCard, color: 'bg-red-100 text-red-600', delta: <p className="text-xs mt-1 text-slate-400">Sisa tagihan pesanan periode ini</p> },
+    { title: 'Total Pesanan', value: formatAngka(r?.totals.orders ?? 0), icon: ShoppingBag, color: 'bg-emerald-100 text-emerald-600', delta: r && <Delta cur={r.totals.orders} prev={r.prev.orders} /> },
+    { title: 'Rata-rata Nilai Pesanan', value: formatRupiah(avg), icon: TrendingUp, color: 'bg-purple-100 text-purple-600', delta: <p className="text-xs mt-1 text-slate-400">Nilai pesanan dibagi jumlah pesanan</p> },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-slate-900">Laporan Keuangan</h1>
-          <p className="text-slate-500 text-sm mt-1">Analisis pendapatan, riwayat transaksi, dan pelacakan pembayaran</p>
+          <p className="text-slate-500 text-sm mt-1">Pendapatan, riwayat pesanan, dan piutang. Pendapatan dihitung dari pembayaran yang diterima.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 shadow-sm">
-            <Calendar className="h-4 w-4" /> Rentang Kustom
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 shadow-sm shadow-blue-200">
-            <Download className="h-4 w-4" /> Ekspor CSV
-          </button>
-        </div>
+        <button onClick={doExport} disabled={!valid || exporting} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 shadow-sm shadow-blue-200 disabled:opacity-60">
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {exporting ? 'Menyiapkan...' : 'Ekspor Excel'}
+        </button>
       </div>
 
-      {/* Period Selector */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-slate-500 font-medium">Periode:</span>
-        {(['7d', '30d', '3m', '6m'] as Period[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${period === p ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-          >
-            {p === '7d' ? '7 Hari' : p === '30d' ? '30 Hari' : p === '3m' ? '3 Bulan' : '6 Bulan'}
+        {(Object.keys(LABEL) as Key[]).map((k) => (
+          <button key={k} onClick={() => change(setKey)(k)} aria-pressed={key === k}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${key === k ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            {LABEL[k]}
           </button>
         ))}
+        <select aria-label="Filter cabang" className={`${selectClass} !w-auto ml-auto`} value={branchId} onChange={(e) => change(setBranchId)(e.target.value)}>
+          <option value="">Semua Cabang</option>
+          {(branches.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
-          { title: 'Total Pendapatan (Lunas)', value: formatRupiah(totalRevenue), icon: Banknote, color: 'blue', change: '+18.7%' },
-          { title: 'Belum Dibayar', value: formatRupiah(unpaidRevenue), icon: CreditCard, color: 'red', change: '-3.2%' },
-          { title: 'Total Transaksi', value: formatAngka(filteredOrders.length), icon: ShoppingBag, color: 'emerald', change: '+12.1%' },
-          { title: 'Rata-rata Nilai Pesanan', value: formatRupiah(avgOrderValue), icon: TrendingUp, color: 'purple', change: '+5.8%' },
-        ].map(card => (
-          <div key={card.title} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      {key === 'custom' && (
+        <div className="flex flex-wrap items-end gap-3">
+          <div><label htmlFor="rp-from" className="text-xs text-slate-500 block mb-1">Dari tanggal</label><input id="rp-from" type="date" className={inputClass} value={from} max={to || undefined} onChange={(e) => change(setFrom)(e.target.value)} /></div>
+          <div><label htmlFor="rp-to" className="text-xs text-slate-500 block mb-1">Sampai tanggal</label><input id="rp-to" type="date" className={inputClass} value={to} min={from || undefined} onChange={(e) => change(setTo)(e.target.value)} /></div>
+        </div>
+      )}
+      {rangeError && <p role="alert" className="text-xs text-red-600">{rangeError}</p>}
+      {valid && period && <p className="text-xs text-slate-400" data-range>{ymd(period.start)} sampai {ymd(period.endInclusive)} ({period.days} hari)</p>}
+
+      {report.isError && <ErrorPanel message="Data laporan tidak dapat dimuat. Periksa koneksi lalu coba lagi." onRetry={() => void report.refetch()} />}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" data-kpis>
+        {kpis.map((c) => (
+          <div key={c.title} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-slate-400">{card.title}</p>
-              <div className={`h-9 w-9 rounded-lg bg-${card.color}-100 flex items-center justify-center`}>
-                <card.icon className={`h-4.5 w-4.5 text-${card.color}-600`} />
-              </div>
+              <p className="text-sm text-slate-400">{c.title}</p>
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${c.color}`}><c.icon className="h-4 w-4" /></div>
             </div>
-            <p className="text-2xl font-bold text-slate-900">{card.value}</p>
-            <p className={`text-xs mt-1 font-medium ${card.change.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>{card.change} dibanding periode lalu</p>
+            <p className="text-2xl font-bold text-slate-900">{c.value}</p>
+            {c.delta}
           </div>
         ))}
       </div>
 
-      {/* Charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-methods>
+        {([['cash', 'Tunai'], ['qris', 'QRIS'], ['transfer', 'Transfer']] as const).map(([m, label]) => {
+          const amount = r?.received[m] ?? 0; const pct = r && r.received.total > 0 ? Math.round((amount / r.received.total) * 100) : 0;
+          return (
+            <div key={m} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5" data-method={m}>
+              <div className="flex items-center justify-between mb-1"><p className="text-sm text-slate-400">{label}</p><span className="text-xs font-bold text-blue-700">{pct}%</span></div>
+              <p className="text-xl font-bold text-slate-900">{formatRupiah(amount)}</p>
+              <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} /></div>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Revenue vs Profit */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          <div className="mb-6">
-            <h3 className="text-slate-900">Tren Pendapatan dan Laba</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Perbandingan 6 bulan</p>
-          </div>
+          <div className="mb-6"><h3 className="text-slate-900">Tren Harian</h3><p className="text-slate-400 text-xs mt-0.5">Pembayaran diterima dan nilai pesanan baru per hari</p></div>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={monthlyData}>
+            <LineChart data={daily}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={v => formatRupiahRingkas(v)} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }}
-                labelStyle={{ color: '#94A3B8', fontSize: 11 }}
-                itemStyle={{ fontSize: 12 }}
-                formatter={(v: number, name: string) => [formatRupiah(v), name]}
-              />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} minTickGap={24} />
+              <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatRupiahRingkas(v)} />
+              <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }} labelStyle={{ color: '#94A3B8', fontSize: 11 }} itemStyle={{ fontSize: 12 }} formatter={(v: number, name: string) => [formatRupiah(v), name]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} dot={false} name="Pendapatan" />
-              <Line type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2} dot={false} name="Laba" />
-              <Line type="monotone" dataKey="expenses" stroke="#EF4444" strokeWidth={2} dot={false} name="Pengeluaran" strokeDasharray="4 4" />
+              <Line type="monotone" dataKey="received" stroke="#3B82F6" strokeWidth={2} dot={false} name="Diterima" />
+              <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={2} dot={false} name="Nilai pesanan" strokeDasharray="4 4" />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Branch Revenue */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          <div className="mb-6">
-            <h3 className="text-slate-900">Pendapatan per Cabang</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Rincian pendapatan bulanan</p>
-          </div>
+          <div className="mb-6"><h3 className="text-slate-900">Pendapatan per Cabang</h3><p className="text-slate-400 text-xs mt-0.5">Pembayaran diterima pada periode terpilih</p></div>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={branchPerformance} layout="vertical" margin={{ left: 20 }}>
+            <BarChart data={r?.branches ?? []} layout="vertical" margin={{ left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={v => formatRupiahRingkas(v)} />
-              <YAxis type="category" dataKey="branch" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} width={70} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }}
-                labelStyle={{ color: '#94A3B8', fontSize: 11 }}
-                itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
-                formatter={(v: number) => [formatRupiah(v), 'Pendapatan']}
-              />
-              <Bar dataKey="revenue" fill="#3B82F6" radius={[0, 6, 6, 0]} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={(v) => formatRupiahRingkas(v)} />
+              <YAxis type="category" dataKey="code" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} width={50} />
+              <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: 8, padding: '8px 12px' }} labelStyle={{ color: '#94A3B8', fontSize: 11 }} itemStyle={{ color: '#F8FAFC', fontSize: 12 }} formatter={(v: number) => [formatRupiah(v), 'Diterima']} />
+              <Bar dataKey="received" fill="#3B82F6" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Transaction Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <div>
-            <h3 className="text-slate-900">Riwayat Transaksi</h3>
-            <p className="text-slate-400 text-xs mt-0.5">{filteredOrders.length} transaksi</p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 p-6 border-b border-slate-100">
+          <div><h3 className="text-slate-900">Riwayat Pesanan</h3><p className="text-slate-400 text-xs mt-0.5" data-total>{formatAngka(orders.data?.total ?? 0)} pesanan dibuat pada periode ini</p></div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-400" />
-            <select className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
-              <option value="">Semua Cabang</option>
-              {branchPerformance.map(p => p.branch).map(b => <option key={b} value={b.toLowerCase()}>{b}</option>)}
-            </select>
-            <select className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterPayment} onChange={e => setFilterPayment(e.target.value)}>
+            <select aria-label="Filter pembayaran" className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500" value={payment} onChange={(e) => change(setPayment)(e.target.value)}>
               <option value="">Semua Pembayaran</option>
               <option value="paid">Lunas</option>
               <option value="unpaid">Belum Dibayar</option>
@@ -160,47 +199,36 @@ export default function FinancialReports() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" data-orders>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {['Tanggal', 'ID Pesanan', 'Pelanggan', 'Layanan', 'Cabang', 'Jumlah', 'Pembayaran', 'Status'].map(h => (
+                {['Tanggal', 'Kode', 'Pelanggan', 'Layanan', 'Cabang', 'Jumlah', 'Pembayaran', 'Status'].map((h) => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredOrders.map(order => (
-                <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-3.5 text-xs text-slate-500">{formatTanggal(order.createdAt)}</td>
-                  <td className="px-6 py-3.5 text-xs font-medium text-slate-800">{order.id}</td>
-                  <td className="px-6 py-3.5">
-                    <p className="text-sm text-slate-800 font-medium">{order.customerName}</p>
-                    <p className="text-xs text-slate-400">{order.phone}</p>
-                  </td>
-                  <td className="px-6 py-3.5 text-sm text-slate-600">{order.serviceName}</td>
-                  <td className="px-6 py-3.5">
-                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{order.branch}</span>
-                  </td>
-                  <td className="px-6 py-3.5 text-sm font-semibold text-slate-900">{formatRupiah(order.total)}</td>
-                  <td className="px-6 py-3.5"><StatusBadge status={order.paymentStatus} size="sm" /></td>
-                  <td className="px-6 py-3.5"><StatusBadge status={order.status} size="sm" /></td>
+              {(orders.data?.rows ?? []).length === 0 && !orders.isPending && <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-slate-400">Tidak ada pesanan pada periode dan filter ini.</td></tr>}
+              {(orders.data?.rows ?? []).map((o) => (
+                <tr key={o.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-3.5 text-xs text-slate-500">{formatTanggalJam(o.created_at)}</td>
+                  <td className="px-6 py-3.5 text-xs font-medium text-slate-800">{o.code}</td>
+                  <td className="px-6 py-3.5"><p className="text-sm text-slate-800 font-medium">{o.customer?.name ?? '-'}</p><p className="text-xs text-slate-400">{o.customer?.phone}</p></td>
+                  <td className="px-6 py-3.5 text-sm text-slate-600">{[...new Set(o.order_items.map((i) => i.service_name))].join(', ')}</td>
+                  <td className="px-6 py-3.5"><span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{o.branch?.name}</span></td>
+                  <td className="px-6 py-3.5 text-sm font-semibold text-slate-900">{formatRupiah(o.total)}</td>
+                  <td className="px-6 py-3.5"><StatusBadge status={o.payment_status} size="sm" /></td>
+                  <td className="px-6 py-3.5"><StatusBadge status={o.status} size="sm" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {/* Footer totals */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50">
-          <p className="text-sm text-slate-500">{filteredOrders.length} transaksi ditampilkan</p>
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <p className="text-xs text-slate-400">Total Diterima</p>
-              <p className="text-sm font-bold text-emerald-700">{formatRupiah(totalRevenue)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400">Belum Dibayar</p>
-              <p className="text-sm font-bold text-red-500">{formatRupiah(unpaidRevenue)}</p>
-            </div>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-xl">
+          <p className="text-sm text-slate-500">Halaman {page + 1} dari {pages}</p>
+          <div className="flex items-center gap-2">
+            <button aria-label="Halaman sebelumnya" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+            <button aria-label="Halaman berikutnya" disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
           </div>
         </div>
       </div>
