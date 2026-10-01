@@ -12,6 +12,7 @@ const BY_CONSTRAINT: Array<[string, string]> = [
   ['branches_code_key', 'Kode cabang sudah dipakai cabang lain.'],
   ['services_name_key', 'Nama layanan sudah dipakai.'],
   ['profiles_email_key', 'Email sudah terdaftar.'],
+  ['promotions_code_key', 'Kode promo sudah dipakai promo lain.'],
   ['customers_phone_key', 'Nomor WhatsApp ini sudah terdaftar atas pelanggan lain.'],
   ['customers_phone_check', 'Nomor WhatsApp tidak valid. Gunakan 8 sampai 15 digit angka.'],
   ['orders_branch_id_fkey', 'Cabang ini sudah punya riwayat pesanan dan tidak bisa dihapus. Ubah statusnya menjadi Tutup.'],

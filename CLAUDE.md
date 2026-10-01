@@ -94,7 +94,9 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - [x] **M5**: Halaman `/track/:token` publik + QR di struk, notifikasi WhatsApp lewat n8n saat status "siap". *(Fitur pembeda utama. Bagian WhatsApp belum diuji terhadap WhatsApp Cloud API sungguhan.)*
   - [x] Panel detail pesanan di Papan Pesanan, info pembayaran (QRIS + rekening) di modal bayar/struk/tracking, token + halaman `/track/:token` + QR tracking di struk.
   - [x] Antrean notifikasi (outbox) + workflow n8n WhatsApp Cloud API resmi di `automation/n8n/`. Uji dengan nomor uji Meta sebelum diserahkan ke klien.
-- [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait). Sementara keempat rute admin menampilkan `ComingSoon` (menu ditandai Segera); file halaman lama (`InventoryManagement`, dll., masih mockData) dipertahankan untuk dipakai ulang dan akan diganti saat M6.
+- [ ] **M6**: Inventaris, promo, membership, komisi (menggantikan mock data terkait). Urutan: Promo, Keanggotaan, Komisi, Inventaris, masing-masing satu commit teruji.
+  - [x] M6a Promo (migrasi `20260929000800_m6a_promotions.sql`: view `promotion_stats`, trigger penjaga hapus)
+  - [ ] Keanggotaan, Komisi, Inventaris: rute admin masih `ComingSoon` (menu ditandai Segera).
 - [ ] **M7** Deploy (persiapan selesai: `vercel.json` rewrite SPA + header keamanan, `public/_redirects`, panduan di README; tinggal deploy oleh pemilik akun Vercel), case study portofolio, dan penyempurnaan data demo. (Lokalisasi UI ke Bahasa Indonesia dan Rupiah sudah selesai lebih awal; sisa data mock akan diganti query Supabase per milestone.)
 
 ## Utang teknis yang diketahui (dari review awal)
@@ -157,7 +159,8 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - **Definisi uang (konsisten di semua halaman)**: Pendapatan = pembayaran diterima (`payments.paid_at`, dasar kas). Nilai pesanan = total pesanan yang dibuat pada periode. Belum terbayar = sisa tagihan pesanan yang dibuat pada periode. `branch_stats.revenue_30d` di halaman Cabang (M2) masih menjumlahkan total pesanan, bukan pembayaran; samakan bila kelak membingungkan.
 - **Tidak ada laba/pengeluaran**: mock lama menampilkan grafik laba dan pengeluaran, tetapi tidak ada tabel pengeluaran. Dihapus, bukan dipalsukan. Kalau klien butuh laba, buat tabel `expenses` dulu (kandidat M6).
 - Lonceng admin = pesanan terlambat semua cabang + cabang berstatus Perbaikan. Kolom "Stok menipis" menunggu inventaris nyata (M6).
-- Halaman yang masih memakai mockData: Inventaris, Keanggotaan, Promo, Komisi (M6).
+- Halaman yang masih memakai mockData: Inventaris, Keanggotaan, Komisi (M6).
+- **Promo (M6a)**: aturan promo hidup di `private.price_order` (aktif, rentang tanggal Asia/Makassar, min_order, kuota). Promo dan diskon member tidak digabung, yang lebih besar dipakai. Status promo (Aktif, Terjadwal, Kedaluwarsa, Kuota habis, Nonaktif) dihitung di `features/promotions/status.ts`. Promo yang sudah dipakai tidak bisa dihapus (trigger DB + tombol disembunyikan), cukup dinonaktifkan. Kuota belum dikunci terhadap balapan dua kasir.
 - Ekspor Excel admin memakai `buildLaporanXlsx` yang sama dengan karyawan (`showBranch` menambah kolom Cabang), maksimal rentang 366 hari.
 
 ## Catatan M5

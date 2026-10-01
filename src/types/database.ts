@@ -690,6 +690,15 @@ export type Database = {
         };
         Relationships: [];
       };
+      promotion_stats: {
+        Row: {
+          promo_id: string | null;
+          usage_count: number | null;
+          discount_total: number | null;
+          last_used_at: string | null;
+        };
+        Relationships: [];
+      };
       service_stats: {
         Row: {
           service_id: string | null;

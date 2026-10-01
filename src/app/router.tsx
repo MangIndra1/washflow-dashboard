@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
               { path: 'inventory', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
               { path: 'commissions', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
               { path: 'membership', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
-              { path: 'promotions', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
+              { path: 'promotions', lazy: lazyRoute(() => import('@/pages/admin/PromotionsPage')) },
               { path: 'settings', lazy: lazyRoute(() => import('@/pages/admin/SettingsPage')) },
             ],
           },

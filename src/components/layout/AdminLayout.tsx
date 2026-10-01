@@ -47,7 +47,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { to: '/admin/inventory', label: 'Inventaris', icon: Package, soon: true },
       { to: '/admin/membership', label: 'Keanggotaan', icon: Star, soon: true },
-      { to: '/admin/promotions', label: 'Promo', icon: Percent, soon: true },
+      { to: '/admin/promotions', label: 'Promo', icon: Percent },
     ],
   },
   {
