@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
               // Sementara: halaman ini belum tersambung ke database (M6). File aslinya masih ada untuk dipakai ulang.
               { path: 'inventory', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
               { path: 'commissions', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
-              { path: 'membership', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
+              { path: 'membership', lazy: lazyRoute(() => import('@/pages/admin/MembershipPage')) },
               { path: 'promotions', lazy: lazyRoute(() => import('@/pages/admin/PromotionsPage')) },
               { path: 'settings', lazy: lazyRoute(() => import('@/pages/admin/SettingsPage')) },
             ],

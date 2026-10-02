@@ -6,7 +6,7 @@ Bagian portofolio **Digital Product Mang In**.
 
 ## Status proyek
 
-**Fitur inti selesai (M0 sampai M5), siap di-deploy dan didemokan.** Alur lengkap sudah memakai database sungguhan: pelanggan, pesanan multi-layanan, pembayaran (termasuk DP), papan pesanan (tampilan Ringkas dan Rinci), riwayat, struk dengan QR pelacakan, halaman pelacakan publik, dasbor dan laporan admin, ekspor Excel, serta notifikasi WhatsApp lewat n8n (`automation/n8n/`). Promo sudah nyata (M6a). Inventaris, Keanggotaan, dan Komisi masih ditandai "Segera hadir" (M6). Lihat `CLAUDE.md` untuk konteks dan roadmap lengkap.
+**Fitur inti selesai (M0 sampai M5), siap di-deploy dan didemokan.** Alur lengkap sudah memakai database sungguhan: pelanggan, pesanan multi-layanan, pembayaran (termasuk DP), papan pesanan (tampilan Ringkas dan Rinci), riwayat, struk dengan QR pelacakan, halaman pelacakan publik, dasbor dan laporan admin, ekspor Excel, serta notifikasi WhatsApp lewat n8n (`automation/n8n/`). Promo dan Keanggotaan sudah nyata (M6a, M6b). Inventaris dan Komisi masih ditandai "Segera hadir" (M6). Lihat `CLAUDE.md` untuk konteks dan roadmap lengkap.
 
 ## Stack
 

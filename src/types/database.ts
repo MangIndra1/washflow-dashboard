@@ -182,6 +182,27 @@ export type Database = {
           },
         ];
       };
+      loyalty_settings: {
+        Row: {
+          id: boolean;
+          enabled: boolean;
+          rupiah_per_point: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          enabled?: boolean;
+          rupiah_per_point?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          enabled?: boolean;
+          rupiah_per_point?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       membership_tiers: {
         Row: {
           id: string;
@@ -524,6 +545,64 @@ export type Database = {
           },
         ];
       };
+      points_log: {
+        Row: {
+          id: string;
+          customer_id: string;
+          order_id: string | null;
+          kind: string;
+          points: number;
+          balance_after: number;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          order_id?: string | null;
+          kind: string;
+          points: number;
+          balance_after: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          order_id?: string | null;
+          kind?: string;
+          points?: number;
+          balance_after?: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "points_log_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "points_log_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "points_log_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: true;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -707,6 +786,13 @@ export type Database = {
         };
         Relationships: [];
       };
+      tier_stats: {
+        Row: {
+          tier_id: string | null;
+          member_count: number | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       create_order: {
@@ -728,6 +814,14 @@ export type Database = {
       };
       admin_report: {
         Args: { p_branch?: string; p_from: string; p_to: string; p_tz?: string };
+        Returns: Json;
+      };
+      adjust_points: {
+        Args: { p_customer_id: string; p_delta: number; p_note: string };
+        Returns: number;
+      };
+      recalc_loyalty_points: {
+        Args: Record<PropertyKey, never>;
         Returns: Json;
       };
       quote_order: {
