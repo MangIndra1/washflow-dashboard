@@ -33,7 +33,7 @@ export const router = createBrowserRouter([
               { path: 'reports', lazy: lazyRoute(() => import('@/pages/admin/FinancialReports')) },
               // Sementara: halaman ini belum tersambung ke database (M6). File aslinya masih ada untuk dipakai ulang.
               { path: 'inventory', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
-              { path: 'commissions', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
+              { path: 'commissions', lazy: lazyRoute(() => import('@/pages/admin/CommissionTracking')) },
               { path: 'membership', lazy: lazyRoute(() => import('@/pages/admin/MembershipPage')) },
               { path: 'promotions', lazy: lazyRoute(() => import('@/pages/admin/PromotionsPage')) },
               { path: 'settings', lazy: lazyRoute(() => import('@/pages/admin/SettingsPage')) },

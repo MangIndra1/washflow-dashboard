@@ -3,7 +3,6 @@ import { useLocation } from 'react-router';
 
 const HALAMAN: Record<string, { judul: string; isi: string }> = {
   inventory: { judul: 'Inventaris', isi: 'Pencatatan stok bahan dan perlengkapan per cabang.' },
-  commissions: { judul: 'Komisi', isi: 'Hitungan komisi karyawan dari pesanan yang ditangani.' },
 };
 
 /** Pengganti halaman yang belum tersambung ke database (sebelumnya menampilkan data contoh palsu). */

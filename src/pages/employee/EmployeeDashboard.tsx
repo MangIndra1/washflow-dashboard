@@ -5,6 +5,8 @@ import { ShoppingBag, CheckCircle, Clock, Banknote, AlertCircle, ArrowRight, Plu
 import { EmptyState, ErrorPanel } from '@/components/shared/QueryStatus';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useAuth } from '@/features/auth/AuthContext';
+import { useMyCommission } from '@/features/commissions/hooks';
+import { monthToDate } from '@/features/orders/period';
 import { dayRange, useActiveOrders, useDayOrders, useDayPayments } from '@/features/orders/hooks';
 import { summarizeDay } from '@/features/orders/summary';
 import { pesanError } from '@/lib/errors';
@@ -25,6 +27,8 @@ export default function EmployeeDashboard() {
   const active = useActiveOrders();
   const day = useDayOrders(range);
   const pays = useDayPayments(range);
+  const monthRange = useMemo(() => monthToDate(), []);
+  const mine = useMyCommission(monthRange.from, monthRange.to);
 
   const error = active.error ?? day.error ?? pays.error;
   const loading = active.isLoading || day.isLoading || pays.isLoading;
@@ -88,6 +92,22 @@ export default function EmployeeDashboard() {
                 <p className="text-xs text-slate-400 mt-0.5">{c.sub}</p>
               </div>
             ))}
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-wrap items-center gap-x-8 gap-y-2" data-my-commission>
+            <div>
+              <p className="text-sm text-slate-400">Komisi Saya Bulan Ini</p>
+              <p className="text-2xl font-bold text-slate-900" data-my-amount>{mine.isPending ? '...' : mine.isError ? '-' : formatRupiah(mine.data.amount)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Belum dibayar</p>
+              <p className="text-sm font-medium text-amber-600" data-my-unpaid>{mine.data ? formatRupiah(mine.data.unpaid) : '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Pesanan berkomisi</p>
+              <p className="text-sm font-medium text-slate-700" data-my-orders>{mine.data ? mine.data.orders : '-'}</p>
+            </div>
+            <p className="text-xs text-slate-400 sm:ml-auto">Dicatat saat pesanan yang Anda buat berstatus Selesai.</p>
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">

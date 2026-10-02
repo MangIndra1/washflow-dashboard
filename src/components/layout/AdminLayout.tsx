@@ -39,7 +39,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
     label: 'Keuangan',
     items: [
       { to: '/admin/reports', label: 'Laporan Keuangan', icon: BarChart3 },
-      { to: '/admin/commissions', label: 'Komisi', icon: Banknote, soon: true },
+      { to: '/admin/commissions', label: 'Komisi', icon: Banknote },
     ],
   },
   {

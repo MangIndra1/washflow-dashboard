@@ -79,6 +79,150 @@ export type Database = {
           },
         ];
       };
+      commission_entries: {
+        Row: {
+          id: string;
+          order_id: string | null;
+          order_code: string;
+          employee_id: string | null;
+          employee_name: string;
+          branch_id: string | null;
+          base_amount: number;
+          rate: number;
+          amount: number;
+          source: string;
+          earned_at: string;
+          payout_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id?: string | null;
+          order_code: string;
+          employee_id?: string | null;
+          employee_name: string;
+          branch_id?: string | null;
+          base_amount: number;
+          rate: number;
+          amount: number;
+          source?: string;
+          earned_at?: string;
+          payout_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string | null;
+          order_code?: string;
+          employee_id?: string | null;
+          employee_name?: string;
+          branch_id?: string | null;
+          base_amount?: number;
+          rate?: number;
+          amount?: number;
+          source?: string;
+          earned_at?: string;
+          payout_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commission_entries_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_entries_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_entries_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: true;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_entries_payout_id_fkey";
+            columns: ["payout_id"];
+            isOneToOne: false;
+            referencedRelation: "commission_payouts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      commission_payouts: {
+        Row: {
+          id: string;
+          employee_id: string | null;
+          employee_name: string;
+          period_from: string;
+          period_to: string;
+          total: number;
+          entry_count: number;
+          note: string | null;
+          paid_at: string;
+          paid_by: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          employee_id?: string | null;
+          employee_name: string;
+          period_from: string;
+          period_to: string;
+          total: number;
+          entry_count: number;
+          note?: string | null;
+          paid_at?: string;
+          paid_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string | null;
+          employee_name?: string;
+          period_from?: string;
+          period_to?: string;
+          total?: number;
+          entry_count?: number;
+          note?: string | null;
+          paid_at?: string;
+          paid_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commission_payouts_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_payouts_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "commission_payouts_voided_by_fkey";
+            columns: ["voided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       customers: {
         Row: {
           id: string;
@@ -822,6 +966,22 @@ export type Database = {
       };
       recalc_loyalty_points: {
         Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      recalc_commissions: {
+        Args: { p_since?: string };
+        Returns: Json;
+      };
+      pay_commissions: {
+        Args: { p_employee_id: string; p_from: string; p_to: string; p_note?: string; p_tz?: string };
+        Returns: Json;
+      };
+      void_commission_payout: {
+        Args: { p_payout_id: string };
+        Returns: number;
+      };
+      commission_report: {
+        Args: { p_branch?: string; p_from: string; p_to: string };
         Returns: Json;
       };
       quote_order: {
