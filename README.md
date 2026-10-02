@@ -6,7 +6,7 @@ Bagian portofolio **Digital Product Mang In**.
 
 ## Status proyek
 
-**Fitur inti selesai (M0 sampai M5), siap di-deploy dan didemokan.** Alur lengkap sudah memakai database sungguhan: pelanggan, pesanan multi-layanan, pembayaran (termasuk DP), papan pesanan (tampilan Ringkas dan Rinci), riwayat, struk dengan QR pelacakan, halaman pelacakan publik, dasbor dan laporan admin, ekspor Excel, serta notifikasi WhatsApp lewat n8n (`automation/n8n/`). Promo, Keanggotaan, dan Komisi sudah nyata (M6a, M6b, M6c). Inventaris masih ditandai "Segera hadir" (M6d). Lihat `CLAUDE.md` untuk konteks dan roadmap lengkap.
+**Fitur inti selesai (M0 sampai M5), siap di-deploy dan didemokan.** Alur lengkap sudah memakai database sungguhan: pelanggan, pesanan multi-layanan, pembayaran (termasuk DP), papan pesanan (tampilan Ringkas dan Rinci), riwayat, struk dengan QR pelacakan, halaman pelacakan publik, dasbor dan laporan admin, ekspor Excel, serta notifikasi WhatsApp lewat n8n (`automation/n8n/`). Promo, Keanggotaan, Komisi, dan Inventaris sudah nyata (M6a sampai M6d); tidak ada lagi menu "Segera hadir". Lihat `CLAUDE.md` untuk konteks dan roadmap lengkap.
 
 ## Stack
 
@@ -75,7 +75,6 @@ src/
   pages/        halaman admin/ dan employee/
   lib/          utilitas, supabase.ts (client)
   types/        database.ts (tipe hasil generate dari skema)
-  data/         mockData.ts, sementara, akan digantikan Supabase
   styles/
 docs/           spesifikasi awal
 supabase/       migrations/ (skema + RLS), seed.sql (bersih), bootstrap-admin.sql, clean-demo-data.sql, demo/ (data contoh)

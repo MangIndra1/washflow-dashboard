@@ -5,6 +5,8 @@ import { ShoppingBag, CheckCircle, Clock, Banknote, AlertCircle, ArrowRight, Plu
 import { EmptyState, ErrorPanel } from '@/components/shared/QueryStatus';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useAuth } from '@/features/auth/AuthContext';
+import { stockStatus } from '@/features/inventory/api';
+import { useLowStock } from '@/features/inventory/hooks';
 import { useMyCommission } from '@/features/commissions/hooks';
 import { monthToDate } from '@/features/orders/period';
 import { dayRange, useActiveOrders, useDayOrders, useDayPayments } from '@/features/orders/hooks';
@@ -29,6 +31,8 @@ export default function EmployeeDashboard() {
   const pays = useDayPayments(range);
   const monthRange = useMemo(() => monthToDate(), []);
   const mine = useMyCommission(monthRange.from, monthRange.to);
+  const lowStock = useLowStock();
+  const lowItems = lowStock.data ?? [];
 
   const error = active.error ?? day.error ?? pays.error;
   const loading = active.isLoading || day.isLoading || pays.isLoading;
@@ -93,6 +97,12 @@ export default function EmployeeDashboard() {
               </div>
             ))}
           </div>
+
+          {lowItems.length > 0 && (
+            <Link to="/employee/stock" data-low-stock className="block rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 hover:bg-amber-100">
+              <b>{lowItems.length} barang stok menipis</b>{lowItems.some((i) => stockStatus(i) === 'critical') ? ' (ada yang kritis)' : ''}: {lowItems.slice(0, 4).map((i) => i.name).join(', ')}{lowItems.length > 4 ? ', ...' : ''}. Lihat stok
+            </Link>
+          )}
 
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-wrap items-center gap-x-8 gap-y-2" data-my-commission>
             <div>

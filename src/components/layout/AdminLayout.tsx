@@ -8,6 +8,8 @@ import {
 import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
+import { stockStatus } from '@/features/inventory/api';
+import { useLowStock } from '@/features/inventory/hooks';
 import { useBranches } from '@/features/branches/hooks';
 import { useOverdueOrders } from '@/features/reports/hooks';
 import { formatTanggalJam } from '@/lib/format';
@@ -45,7 +47,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
   {
     label: 'Operasional',
     items: [
-      { to: '/admin/inventory', label: 'Inventaris', icon: Package, soon: true },
+      { to: '/admin/inventory', label: 'Inventaris', icon: Package },
       { to: '/admin/membership', label: 'Keanggotaan', icon: Star },
       { to: '/admin/promotions', label: 'Promo', icon: Percent },
     ],
@@ -58,11 +60,12 @@ const navSections: { label: string; items: NavItem[] }[] = [
   },
 ];
 
-interface Alert { id: string; icon: 'overdue' | 'maintenance'; message: string; detail?: string; to: string }
+interface Alert { id: string; icon: 'overdue' | 'maintenance' | 'stock'; message: string; detail?: string; to: string }
 
 const alertIcon = {
   overdue: <AlertCircle className="h-4 w-4 text-red-500" />,
   maintenance: <Wrench className="h-4 w-4 text-amber-500" />,
+  stock: <Package className="h-4 w-4 text-amber-500" />,
 };
 
 export default function AdminLayout() {
@@ -75,6 +78,9 @@ export default function AdminLayout() {
 
   const overdue = useOverdueOrders(5);
   const branches = useBranches();
+  const lowStock = useLowStock();
+  const lowItems = lowStock.data ?? [];
+  const criticalItems = lowItems.filter((i) => stockStatus(i) === 'critical').length;
   const alerts: Alert[] = [
     ...(overdue.data?.rows ?? []).map((o): Alert => ({
       id: o.id, icon: 'overdue', message: `${o.code} (${o.customer?.name ?? 'pelanggan'}) terlambat di ${o.branch?.name ?? 'cabang'}`,
@@ -83,9 +89,14 @@ export default function AdminLayout() {
     ...(branches.data ?? []).filter((b) => b.status === 'maintenance').map((b): Alert => ({
       id: `m-${b.id}`, icon: 'maintenance', message: `${b.name} sedang dalam perbaikan`, to: '/admin/branches',
     })),
+    ...(lowItems.length > 0 ? [{
+      id: 'stock', icon: 'stock' as const, to: '/admin/inventory',
+      message: `${lowItems.length} barang stok menipis${criticalItems > 0 ? `, ${criticalItems} kritis` : ''}`,
+      detail: lowItems.slice(0, 3).map((i) => `${i.name} (${i.branch?.code ?? '-'})`).join(', ') + (lowItems.length > 3 ? ', ...' : ''),
+    }] : []),
   ];
   const extra = Math.max(0, (overdue.data?.count ?? 0) - (overdue.data?.rows.length ?? 0));
-  const unreadCount = (overdue.data?.count ?? 0) + alerts.filter((a) => a.icon === 'maintenance').length;
+  const unreadCount = (overdue.data?.count ?? 0) + alerts.filter((a) => a.icon === 'maintenance').length + lowItems.length;
 
   const handleLogout = () => {
     logout();

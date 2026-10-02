@@ -31,8 +31,7 @@ export const router = createBrowserRouter([
               { path: 'employees', lazy: lazyRoute(() => import('@/pages/admin/EmployeeManagement')) },
               { path: 'services', lazy: lazyRoute(() => import('@/pages/admin/ServiceManagement')) },
               { path: 'reports', lazy: lazyRoute(() => import('@/pages/admin/FinancialReports')) },
-              // Sementara: halaman ini belum tersambung ke database (M6). File aslinya masih ada untuk dipakai ulang.
-              { path: 'inventory', lazy: lazyRoute(() => import('@/pages/admin/ComingSoon')) },
+              { path: 'inventory', lazy: lazyRoute(() => import('@/pages/admin/InventoryManagement')) },
               { path: 'commissions', lazy: lazyRoute(() => import('@/pages/admin/CommissionTracking')) },
               { path: 'membership', lazy: lazyRoute(() => import('@/pages/admin/MembershipPage')) },
               { path: 'promotions', lazy: lazyRoute(() => import('@/pages/admin/PromotionsPage')) },
@@ -55,6 +54,7 @@ export const router = createBrowserRouter([
               { path: 'orders/:id', lazy: lazyRoute(() => import('@/pages/employee/OrderReceipt')) },
               { path: 'customers', lazy: lazyRoute(() => import('@/pages/employee/CustomerSearch')) },
               { path: 'summary', lazy: lazyRoute(() => import('@/pages/employee/DailySummary')) },
+              { path: 'stock', lazy: lazyRoute(() => import('@/pages/employee/StockPage')) },
             ],
           },
         ],

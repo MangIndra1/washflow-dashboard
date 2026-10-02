@@ -3,11 +3,12 @@ import { Outlet, NavLink, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Plus, Kanban, Search, FileText, History,
   LogOut, Bell, ChevronDown, KeyRound, Menu, X,
-  AlertCircle, CheckCircle, Wallet,
+  AlertCircle, CheckCircle, Wallet, Package,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
+import { useLowStock } from '@/features/inventory/hooks';
 import { useActiveOrders } from '@/features/orders/hooks';
 import { isOverdue } from '@/features/orders/api';
 import { formatJam } from '@/lib/format';
@@ -18,15 +19,17 @@ const navItems = [
   { to: '/employee/orders', label: 'Papan Pesanan', icon: Kanban },
   { to: '/employee/history', label: 'Riwayat Pesanan', icon: History },
   { to: '/employee/customers', label: 'Pelanggan', icon: Search },
+  { to: '/employee/stock', label: 'Stok', icon: Package },
   { to: '/employee/summary', label: 'Ringkasan Harian', icon: FileText },
 ];
 
-interface Alert { id: string; icon: 'overdue' | 'ready' | 'unpaid'; message: string; to: string }
+interface Alert { id: string; icon: 'overdue' | 'ready' | 'unpaid' | 'stock'; message: string; to: string }
 
 const alertIcon = {
   overdue: <AlertCircle className="h-4 w-4 text-red-500" />,
   ready: <CheckCircle className="h-4 w-4 text-emerald-500" />,
   unpaid: <Wallet className="h-4 w-4 text-amber-500" />,
+  stock: <Package className="h-4 w-4 text-amber-500" />,
 };
 
 export default function EmployeeLayout() {
@@ -48,6 +51,9 @@ export default function EmployeeLayout() {
     }
     return out;
   });
+  const lowStock = useLowStock();
+  const lowItems = lowStock.data ?? [];
+  if (lowItems.length > 0) alerts.push({ id: 'stock', icon: 'stock', message: `${lowItems.length} barang stok menipis: ${lowItems.slice(0, 3).map((i) => i.name).join(', ')}${lowItems.length > 3 ? ', ...' : ''}`, to: '/employee/stock' });
   const unreadCount = alerts.length;
 
   const handleLogout = () => {

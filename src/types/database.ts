@@ -285,6 +285,7 @@ export type Database = {
           last_restocked: string | null;
           created_at: string;
           updated_at: string;
+          is_active: boolean;
         };
         Insert: {
           id?: string;
@@ -300,6 +301,7 @@ export type Database = {
           last_restocked?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_active?: boolean;
         };
         Update: {
           id?: string;
@@ -315,6 +317,7 @@ export type Database = {
           last_restocked?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_active?: boolean;
         };
         Relationships: [
           {
@@ -884,6 +887,67 @@ export type Database = {
         };
         Relationships: [];
       };
+      stock_movements: {
+        Row: {
+          id: string;
+          item_id: string;
+          branch_id: string;
+          kind: string;
+          quantity: number;
+          balance_after: number;
+          note: string | null;
+          created_by: string | null;
+          created_by_name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          item_id: string;
+          branch_id: string;
+          kind: string;
+          quantity: number;
+          balance_after: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_by_name?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          item_id?: string;
+          branch_id?: string;
+          kind?: string;
+          quantity?: number;
+          balance_after?: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_by_name?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stock_movements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stock_movements_item_id_fkey";
+            columns: ["item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       branch_stats: {
@@ -983,6 +1047,10 @@ export type Database = {
       commission_report: {
         Args: { p_branch?: string; p_from: string; p_to: string };
         Returns: Json;
+      };
+      record_stock: {
+        Args: { p_item_id: string; p_kind: string; p_qty: number; p_note?: string };
+        Returns: number;
       };
       quote_order: {
         Args: { p_customer_id: string; p_items: Json; p_promo_code?: string };
