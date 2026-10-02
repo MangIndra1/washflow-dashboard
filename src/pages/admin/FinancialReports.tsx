@@ -8,6 +8,7 @@ import {
 
 import { ErrorPanel } from '@/components/shared/QueryStatus';
 import { inputClass, selectClass } from '@/components/shared/FormField';
+import { DiscountTag } from '@/components/shared/DiscountTag';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useBranches } from '@/features/branches/hooks';
 import { fetchCreatedInRange, fetchExportPayments } from '@/features/orders/api';
@@ -142,6 +143,35 @@ export default function FinancialReports() {
         ))}
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-discounts>
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
+          <div><h3 className="text-slate-900">Diskon dan Kupon</h3><p className="text-slate-400 text-xs mt-0.5">Harga normal dikurangi diskon sama dengan nilai pesanan. Berlaku untuk pesanan yang dibuat pada periode ini.</p></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-lg bg-slate-50 p-4"><p className="text-xs text-slate-400">Penjualan kotor (harga normal)</p><p className="text-xl font-bold text-slate-900" data-gross>{formatRupiah(r?.totals.gross ?? 0)}</p></div>
+          <div className="rounded-lg bg-violet-50 p-4"><p className="text-xs text-violet-500">Diskon diberikan</p><p className="text-xl font-bold text-violet-700" data-discount-total>-{formatRupiah(r?.totals.discount ?? 0)}</p>
+            <p className="text-xs text-violet-500 mt-1" data-discount-share>{formatAngka(r?.totals.discounted_orders ?? 0)} dari {formatAngka(r?.totals.orders ?? 0)} pesanan berdiskon{r && r.totals.gross > 0 ? `, ${(r.totals.discount / r.totals.gross * 100).toFixed(1).replace('.', ',')}% dari penjualan kotor` : ''}</p></div>
+          <div className="rounded-lg bg-emerald-50 p-4"><p className="text-xs text-emerald-600">Nilai pesanan (setelah diskon)</p><p className="text-xl font-bold text-emerald-700" data-net>{formatRupiah(r?.totals.value ?? 0)}</p></div>
+        </div>
+        {(r?.discounts ?? []).length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400" data-discount-empty>Tidak ada pesanan berdiskon pada periode dan filter ini.</p>
+        ) : (
+          <table className="mt-4 w-full text-sm" data-discount-table>
+            <thead><tr className="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100"><th className="py-2 font-semibold">Sumber diskon</th><th className="py-2 font-semibold">Jenis</th><th className="py-2 font-semibold text-right">Pesanan</th><th className="py-2 font-semibold text-right">Jumlah diskon</th></tr></thead>
+            <tbody className="divide-y divide-slate-50">
+              {(r?.discounts ?? []).map((d) => (
+                <tr key={d.label} data-discount-row={d.label}>
+                  <td className="py-2.5 font-medium text-slate-800">{d.label}</td>
+                  <td className="py-2.5"><span className={`text-xs px-2 py-0.5 rounded-full ${d.kind === 'promo' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}`}>{d.kind === 'promo' ? 'Kupon promo' : 'Member'}</span></td>
+                  <td className="py-2.5 text-right text-slate-600">{formatAngka(d.orders)}</td>
+                  <td className="py-2.5 text-right font-semibold text-slate-900">-{formatRupiah(d.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-methods>
         {([['cash', 'Tunai'], ['qris', 'QRIS'], ['transfer', 'Transfer']] as const).map(([m, label]) => {
           const amount = r?.received[m] ?? 0; const pct = r && r.received.total > 0 ? Math.round((amount / r.received.total) * 100) : 0;
@@ -216,7 +246,10 @@ export default function FinancialReports() {
                   <td className="px-6 py-3.5"><p className="text-sm text-slate-800 font-medium">{o.customer?.name ?? '-'}</p><p className="text-xs text-slate-400">{o.customer?.phone}</p></td>
                   <td className="px-6 py-3.5 text-sm text-slate-600">{[...new Set(o.order_items.map((i) => i.service_name))].join(', ')}</td>
                   <td className="px-6 py-3.5"><span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{o.branch?.name}</span></td>
-                  <td className="px-6 py-3.5 text-sm font-semibold text-slate-900">{formatRupiah(o.total)}</td>
+                  <td className="px-6 py-3.5 text-sm font-semibold text-slate-900">
+                    {formatRupiah(o.total)}
+                    {o.discount > 0 && <div className="mt-1"><DiscountTag discount={o.discount} label={o.discount_label} showLabel /></div>}
+                  </td>
                   <td className="px-6 py-3.5"><StatusBadge status={o.payment_status} size="sm" /></td>
                   <td className="px-6 py-3.5"><StatusBadge status={o.status} size="sm" /></td>
                 </tr>

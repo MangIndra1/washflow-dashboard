@@ -5,8 +5,10 @@ import type { PaymentMethod } from '@/features/orders/api';
 export interface ReportDay { day: string; orders: number; value: number; received: number }
 export interface ReportBranch { id: string; code: string; name: string; orders: number; value: number; received: number }
 export interface ReportService { name: string; orders: number; quantity: number; value: number }
+export interface ReportDiscount { label: string; kind: 'promo' | 'member'; orders: number; amount: number }
 export interface AdminReport {
-  totals: { orders: number; value: number; outstanding: number };
+  totals: { orders: number; value: number; outstanding: number; gross: number; discount: number; discounted_orders: number };
+  discounts: ReportDiscount[];
   received: { total: number } & Record<PaymentMethod, number>;
   prev: { orders: number; value: number; received: number };
   daily: ReportDay[];
@@ -52,13 +54,13 @@ export async function fetchActiveCount(): Promise<number> {
 }
 
 export interface OrderRow {
-  id: string; code: string; created_at: string; total: number; paid_amount: number;
+  id: string; code: string; created_at: string; subtotal: number; discount: number; discount_label: string | null; total: number; paid_amount: number;
   payment_status: 'unpaid' | 'partial' | 'paid'; status: string;
   customer: { name: string; phone: string } | null; branch: { name: string; code: string } | null;
   order_items: { service_name: string }[];
 }
 
-const ROW_SELECT = `id, code, created_at, total, paid_amount, payment_status, status,
+const ROW_SELECT = `id, code, created_at, subtotal, discount, discount_label, total, paid_amount, payment_status, status,
   customer:customers(name, phone), branch:branches!orders_branch_id_fkey(name, code), order_items(service_name)`;
 
 export interface OrderPageQuery { from: string; to: string; branchId: string | null; payment: string; page: number; pageSize: number }

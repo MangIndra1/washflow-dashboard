@@ -161,6 +161,7 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - Lonceng admin = pesanan terlambat semua cabang + cabang berstatus Perbaikan. Kolom "Stok menipis" menunggu inventaris nyata (M6).
 - Halaman yang masih memakai mockData: Inventaris, Keanggotaan, Komisi (M6).
 - **Promo (M6a)**: aturan promo hidup di `private.price_order` (aktif, rentang tanggal Asia/Makassar, min_order, kuota). Promo dan diskon member tidak digabung, yang lebih besar dipakai. Status promo (Aktif, Terjadwal, Kedaluwarsa, Kuota habis, Nonaktif) dihitung di `features/promotions/status.ts`. Promo yang sudah dipakai tidak bisa dihapus (trigger DB + tombol disembunyikan), cukup dinonaktifkan. Kuota belum dikunci terhadap balapan dua kasir.
+- **Diskon terlihat di mana-mana (M6a-2)**: `orders.total` adalah harga setelah diskon, jadi selalu dampingi dengan `subtotal` dan `discount`. Lencana `DiscountTag` tampil di kartu papan, riwayat karyawan, dan tabel riwayat admin. Ekspor Excel/CSV punya kolom Subtotal, Diskon, Keterangan Diskon; sheet Ringkasan memuat Penjualan kotor, Diskon diberikan, Nilai pesanan, dan rincian per sumber. `admin_report` mengembalikan `totals.gross/discount/discounted_orders` dan `discounts[]` (migrasi `20260929000900_m6a2_discount_report.sql`); kartu "Diskon dan Kupon" ada di Laporan Keuangan. Pendapatan (kas) tetap bersih karena dihitung dari pembayaran.
 - Ekspor Excel admin memakai `buildLaporanXlsx` yang sama dengan karyawan (`showBranch` menambah kolom Cabang), maksimal rentang 366 hari.
 
 ## Catatan M5

@@ -8,6 +8,7 @@ import { HISTORY_PAGE_SIZE, STATUS_LABEL, STATUS_ORDER, type HistoryQuery } from
 import { OrderDetailSheet } from '@/features/orders/OrderDetailSheet';
 import { useOrderHistory } from '@/features/orders/hooks';
 import { PERIOD_LABEL, resolvePeriod, type PeriodKey } from '@/features/orders/period';
+import { DiscountTag } from '@/components/shared/DiscountTag';
 import { pesanError } from '@/lib/errors';
 import { formatRupiah, formatTanggalJam } from '@/lib/format';
 import { useDebounced } from '@/lib/useDebounced';
@@ -114,7 +115,10 @@ export default function OrderHistory() {
                   <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{formatTanggalJam(o.created_at)}</td>
                   <td className="px-4 py-3"><StatusBadge status={o.status} size="sm" /></td>
                   <td className="px-4 py-3"><StatusBadge status={o.payment_status} size="sm" /></td>
-                  <td className="px-4 py-3 text-right font-medium text-slate-900 whitespace-nowrap">{formatRupiah(o.total)}</td>
+                  <td className="px-4 py-3 text-right font-medium text-slate-900 whitespace-nowrap">
+                    {formatRupiah(o.total)}
+                    {o.discount > 0 && <div className="mt-1 flex justify-end"><DiscountTag discount={o.discount} label={o.discount_label} showLabel /></div>}
+                  </td>
                 </tr>
               ))}
             </tbody>

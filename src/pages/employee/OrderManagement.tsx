@@ -10,6 +10,7 @@ import { checkMove, isOverdue, nextStatus, prevStatus, type BoardOrder, type Ord
 import { OrderDetailSheet } from '@/features/orders/OrderDetailSheet';
 import { PaymentModal } from '@/features/orders/PaymentModal';
 import { useActiveOrders, useCompletedToday, useUpdateOrderStatus } from '@/features/orders/hooks';
+import { DiscountTag } from '@/components/shared/DiscountTag';
 import { pesanError } from '@/lib/errors';
 import { formatRupiah, formatTanggalJam } from '@/lib/format';
 import { linkWhatsApp } from '@/lib/whatsapp';
@@ -355,7 +356,10 @@ export default function OrderManagement() {
                           )}
 
                           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
-                            <span className="text-xs text-slate-500 font-medium">{formatRupiah(order.total)}</span>
+                            <div className="flex min-w-0 flex-col items-start gap-1">
+                              <span className="text-xs text-slate-500 font-medium">{formatRupiah(order.total)}</span>
+                              <DiscountTag discount={order.discount} label={order.discount_label} />
+                            </div>
                             <div className="flex items-center gap-1">
                               {order.customer && (
                                 <a

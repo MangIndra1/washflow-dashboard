@@ -30,10 +30,10 @@ export function ExportDialog({ branchName, branchCode, onClose }: { branchName: 
       if (fmt === 'xlsx') {
         downloadBlob(`${base}.xlsx`, await buildLaporanXlsx({ branchName, period, orders, payments }));
       } else {
-        const rows: unknown[][] = [['Kode', 'Tanggal', 'Jam', 'Pelanggan', 'Telepon', 'Layanan', 'Kasir', 'Total', 'Dibayar', 'Pembayaran', 'Status']];
+        const rows: unknown[][] = [['Kode', 'Tanggal', 'Jam', 'Pelanggan', 'Telepon', 'Layanan', 'Kasir', 'Subtotal', 'Diskon', 'Keterangan Diskon', 'Total', 'Dibayar', 'Pembayaran', 'Status']];
         for (const o of orders) {
           rows.push([o.code, ymd(new Date(o.created_at)), formatJam(o.created_at), o.customer?.name ?? '', o.customer?.phone ?? '',
-            o.order_items.map((i) => i.service_name).join(', '), o.cashier?.full_name ?? '', o.total, o.paid_amount, BAYAR_LABEL[o.payment_status], STATUS_LABEL[o.status]]);
+            o.order_items.map((i) => i.service_name).join(', '), o.cashier?.full_name ?? '', o.subtotal, o.discount, o.discount > 0 ? (o.discount_label ?? 'Diskon') : '', o.total, o.paid_amount, BAYAR_LABEL[o.payment_status], STATUS_LABEL[o.status]]);
         }
         downloadCsv(`${base}.csv`, rows);
       }
@@ -85,7 +85,7 @@ export function ExportDialog({ branchName, branchCode, onClose }: { branchName: 
         {error
           ? <p role="alert" className="text-xs text-red-600">{error}</p>
           : period && <p className="text-xs text-slate-500" data-period-info>{ymd(period.start)} sampai {ymd(period.endInclusive)} ({period.days} hari). Maksimal {MAX_EXPORT_DAYS} hari.</p>}
-        <p className="text-xs text-slate-400">File Excel berisi tiga sheet: Ringkasan (total dan per hari), Pesanan, dan Pembayaran.</p>
+        <p className="text-xs text-slate-400">File Excel berisi tiga sheet: Ringkasan (total, rincian diskon, dan per hari), Pesanan (dengan subtotal, diskon, dan total), serta Pembayaran.</p>
       </div>
     </Modal>
   );

@@ -57,6 +57,8 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
     { header: 'Kode', key: 'code' }, ...(showBranch ? [{ header: 'Cabang', key: 'branch' }] : []), { header: 'Tanggal', key: 'date', style: { numFmt: 'dd/mm/yyyy' } },
     { header: 'Jam', key: 'time', style: { numFmt: 'hh.mm' } }, { header: 'Pelanggan', key: 'name' },
     { header: 'Telepon', key: 'phone', style: { numFmt: '@' } }, { header: 'Layanan', key: 'svc' }, { header: 'Kasir', key: 'cashier' },
+    { header: 'Subtotal', key: 'subtotal', style: { numFmt: RUPIAH } }, { header: 'Diskon', key: 'discount', style: { numFmt: RUPIAH } },
+    { header: 'Keterangan Diskon', key: 'dlabel' },
     { header: 'Total', key: 'total', style: { numFmt: RUPIAH } }, { header: 'Dibayar', key: 'paid', style: { numFmt: RUPIAH } },
     { header: 'Sisa', key: 'left', style: { numFmt: RUPIAH } }, { header: 'Pembayaran', key: 'pay' }, { header: 'Status', key: 'status' },
   ];
@@ -66,7 +68,7 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
       code: o.code, branch: o.branch?.name ?? '', date: dayCell(new Date(o.created_at)), time: new Date(Date.UTC(1899, 11, 30, at.getUTCHours(), at.getUTCMinutes())),
       name: o.customer?.name ?? '', phone: o.customer?.phone ?? '',
       svc: o.order_items.map((i) => `${i.service_name} (${i.quantity} ${i.unit})`).join(', '),
-      cashier: o.cashier?.full_name ?? '', total: o.total, paid: o.paid_amount, left: Math.max(0, o.total - o.paid_amount),
+      cashier: o.cashier?.full_name ?? '', subtotal: o.subtotal, discount: o.discount, dlabel: o.discount > 0 ? (o.discount_label ?? 'Diskon') : '', total: o.total, paid: o.paid_amount, left: Math.max(0, o.total - o.paid_amount),
       pay: BAYAR_LABEL[o.payment_status], status: STATUS_LABEL[o.status],
     });
   }
@@ -84,7 +86,7 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
   if (orders.length > 0) {
     wp.autoFilter = { from: 'A1', to: `${colOf('status')}${last}` };
     const tot = wp.addRow({ code: 'Total (mengikuti filter)' });
-    for (const key of ['total', 'paid', 'left']) {
+    for (const key of ['subtotal', 'discount', 'total', 'paid', 'left']) {
       const col = colOf(key); const c = tot.getCell(col);
       c.value = { formula: `SUBTOTAL(109,${col}2:${col}${last})`, result: 0 }; c.numFmt = RUPIAH;
     }
@@ -115,9 +117,19 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
   const byMethod = { cash: 0, qris: 0, transfer: 0 };
   for (const p of payments) byMethod[p.method] += p.amount;
   const received = payments.reduce((s, p) => s + p.amount, 0);
+  const gross = orders.reduce((s, o) => s + o.subtotal, 0);
+  const diskon = orders.reduce((s, o) => s + o.discount, 0);
+  const bySource = new Map<string, { n: number; v: number }>();
+  for (const o of orders) {
+    if (o.discount <= 0) continue;
+    const k = o.discount_label ?? 'Diskon lain'; const e = bySource.get(k) ?? { n: 0, v: 0 };
+    e.n++; e.v += o.discount; bySource.set(k, e);
+  }
   const rows: [string, number, boolean][] = [
     ['Jumlah pesanan', orders.length, false],
-    ['Nilai pesanan', orders.reduce((s, o) => s + o.total, 0), true],
+    ['Penjualan kotor (harga normal)', gross, true],
+    ['Diskon diberikan', diskon, true],
+    ['Nilai pesanan (setelah diskon)', orders.reduce((s, o) => s + o.total, 0), true],
     ['Pembayaran diterima', received, true],
     ['   Tunai', byMethod.cash, true], ['   QRIS', byMethod.qris, true], ['   Transfer', byMethod.transfer, true],
     ['Belum terbayar (pesanan periode ini)', orders.reduce((s, o) => s + Math.max(0, o.total - o.paid_amount), 0), true],
@@ -128,8 +140,18 @@ export async function buildLaporanXlsx(input: LaporanInput): Promise<Blob> {
     if (!label.startsWith(' ')) ws.getCell(`A${r}`).font = { bold: true };
   });
 
+  // rincian diskon per sumber (promo atau member)
+  let next = 6 + rows.length + 2;
+  if (bySource.size > 0) {
+    ws.getCell(`A${next}`).value = 'Rincian diskon'; ws.getCell(`B${next}`).value = 'Pesanan'; ws.getCell(`C${next}`).value = 'Jumlah diskon'; header(ws.getRow(next));
+    [...bySource.entries()].sort((a, b) => b[1].v - a[1].v).forEach(([k, e], i) => {
+      const rr = next + 1 + i; ws.getCell(`A${rr}`).value = k; ws.getCell(`B${rr}`).value = e.n; ws.getCell(`C${rr}`).value = e.v; ws.getCell(`C${rr}`).numFmt = RUPIAH;
+    });
+    next += bySource.size + 2;
+  }
+
   // per hari
-  const start = 6 + rows.length + 2;
+  const start = next;
   ws.getCell(`A${start}`).value = 'Tanggal'; ws.getCell(`B${start}`).value = 'Pesanan'; ws.getCell(`C${start}`).value = 'Nilai pesanan'; ws.getCell(`D${start}`).value = 'Pembayaran diterima';
   header(ws.getRow(start));
   const perDay = new Map<string, { n: number; v: number; p: number }>();

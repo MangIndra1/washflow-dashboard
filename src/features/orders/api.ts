@@ -91,6 +91,9 @@ export interface BoardOrder {
   code: string;
   status: OrderStatus;
   payment_status: Tables<'orders'>['payment_status'];
+  subtotal: number;
+  discount: number;
+  discount_label: string | null;
   total: number;
   paid_amount: number;
   due_at: string | null;
@@ -103,7 +106,7 @@ export interface BoardOrder {
   branch: { name: string } | null;
 }
 
-const BOARD_SELECT = `id, code, status, payment_status, total, paid_amount, due_at, created_at, completed_at, notes,
+const BOARD_SELECT = `id, code, status, payment_status, subtotal, discount, discount_label, total, paid_amount, due_at, created_at, completed_at, notes,
   customer:customers(name, phone),
   cashier:profiles!orders_cashier_id_fkey(full_name),
   branch:branches!orders_branch_id_fkey(name),
