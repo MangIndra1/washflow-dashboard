@@ -132,7 +132,7 @@ export default function InventoryManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-slate-900">Manajemen Inventaris</h1>
           <p className="text-slate-500 text-sm mt-1">Stok bahan dan perlengkapan per cabang. Setiap perubahan stok tercatat di riwayat.</p>

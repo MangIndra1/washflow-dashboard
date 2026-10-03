@@ -79,7 +79,7 @@ export default function PromotionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-slate-900">Promo dan Diskon</h1>
           <p className="text-slate-500 text-sm mt-1">Buat dan kelola kode diskon. Kasir memasukkan kodenya saat membuat pesanan.</p>

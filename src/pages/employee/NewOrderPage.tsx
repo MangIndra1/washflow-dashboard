@@ -160,11 +160,12 @@ export default function NewOrderPage() {
                 <button onClick={() => setCustomerId(null)} aria-label="Ganti pelanggan" className="text-xs text-slate-500 hover:text-slate-800 underline">Ganti</button>
               </div>
             ) : (
-              <div className="relative">
+              <div>
+               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   className={`${inputClassEmerald} pl-9`}
-                  placeholder="Cari nama atau nomor WhatsApp pelanggan"
+                  placeholder="Cari nama atau nomor WhatsApp"
                   aria-label="Cari pelanggan"
                   value={custSearch}
                   onChange={(e) => { setCustSearch(e.target.value); setDropdownOpen(true); }}
@@ -190,6 +191,7 @@ export default function NewOrderPage() {
                     </button>
                   </div>
                 )}
+               </div>
                 <p className="text-xs text-slate-400 mt-2">Ketik minimal 2 huruf atau angka. Pelanggan belum terdaftar? Pilih Tambah pelanggan baru.</p>
               </div>
             )}
@@ -233,12 +235,12 @@ export default function NewOrderPage() {
                   const err = lineError(l.qty, l.service.unit);
                   const qty = parseQty(l.qty);
                   return (
-                    <div key={l.service.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
-                      <div className="flex-1 min-w-0">
+                    <div key={l.service.id} className="flex flex-wrap sm:flex-nowrap items-start gap-x-3 gap-y-2 p-3 rounded-xl border border-slate-200 bg-slate-50">
+                      <div className="order-1 flex-1 min-w-0 basis-[calc(100%-3rem)] sm:basis-0">
                         <p className="text-sm font-medium text-slate-900">{l.service.name}</p>
                         <p className="text-xs text-slate-400">{formatRupiah(l.service.price)} {UNIT_LABEL[l.service.unit]}</p>
                       </div>
-                      <div>
+                      <div className="order-3 sm:order-2">
                         <div className="flex items-center gap-1">
                           <button onClick={() => stepQty(l.service.id, l.service.unit, -1)} aria-label={`Kurangi ${l.service.name}`} className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center"><Minus className="h-4 w-4" /></button>
                           <input
@@ -254,10 +256,10 @@ export default function NewOrderPage() {
                         </div>
                         {err && l.qty !== '' && <p className="text-xs text-red-600 mt-1">{err}</p>}
                       </div>
-                      <p className="w-24 text-right text-sm font-medium text-slate-900 pt-2">
+                      <p className="order-4 sm:order-3 ml-auto sm:ml-0 sm:w-24 text-right text-sm font-medium text-slate-900 pt-2">
                         {err ? '-' : formatRupiah(Math.round(qty * l.service.price))}
                       </p>
-                      <button onClick={() => removeLine(l.service.id)} aria-label={`Hapus ${l.service.name}`} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => removeLine(l.service.id)} aria-label={`Hapus ${l.service.name}`} className="order-2 sm:order-4 p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   );
                 })}

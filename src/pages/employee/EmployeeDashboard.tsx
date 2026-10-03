@@ -50,14 +50,14 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-slate-900">Dasbor</h1>
           <p className="text-slate-500 text-sm mt-1">{currentUser?.branchName || 'Cabang'}, {formatTanggalLengkap()}</p>
         </div>
         <button
           onClick={() => navigate('/employee/new-order')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm whitespace-nowrap hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
         >
           <Plus className="h-4 w-4" /> Pesanan Baru
         </button>

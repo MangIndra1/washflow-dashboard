@@ -90,7 +90,25 @@ export default function OrderHistory() {
       ) : rows.length === 0 ? (
         <EmptyState title="Tidak ada pesanan yang cocok" hint="Ubah kata kunci atau filter." />
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto" data-history-table>
+        <>
+        <div className="md:hidden space-y-2" data-history-cards>
+          {rows.map((o) => (
+            <button key={o.id} type="button" onClick={() => setDetailId(o.id)} data-history-card={o.code} className="block w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm active:bg-slate-50">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-xs font-semibold text-slate-600">{o.code}</span>
+                <span className="text-xs text-slate-400">{formatTanggalJam(o.created_at)}</span>
+              </div>
+              <p className="mt-1 font-medium text-slate-900">{o.customer?.name ?? 'Pelanggan dihapus'}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <StatusBadge status={o.status} size="sm" />
+                <StatusBadge status={o.payment_status} size="sm" />
+                {o.discount > 0 && <DiscountTag discount={o.discount} label={o.discount_label} />}
+                <span className="ml-auto font-semibold text-slate-900">{formatRupiah(o.total)}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto" data-history-table>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -124,6 +142,7 @@ export default function OrderHistory() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {!history.isError && count > 0 && (

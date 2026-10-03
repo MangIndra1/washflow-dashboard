@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Building2, Users, Tag, BarChart3,
   Package, Banknote, Star, Percent, LogOut,
   Bell, ChevronDown, KeyRound, Menu, X, AlertCircle, Wrench, Settings,
 } from 'lucide-react';
+import { useIsDesktop } from '@/lib/useMediaQuery';
 import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/features/auth/AuthContext';
 import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
@@ -71,7 +72,12 @@ const alertIcon = {
 export default function AdminLayout() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isDesktop = useIsDesktop();
+  const [sidebarOpen, setSidebarOpen] = useState(isDesktop);
+  const { pathname } = useLocation();
+  // Desktop: menu terbuka. HP/tablet: menu berupa laci yang tertutup dan menutup lagi setelah pindah halaman.
+  useEffect(() => { setSidebarOpen(isDesktop); }, [isDesktop]);
+  useEffect(() => { if (!isDesktop) setSidebarOpen(false); }, [pathname, isDesktop]);
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -106,7 +112,8 @@ export default function AdminLayout() {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-60' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-slate-900 flex flex-col h-full z-30`}>
+      {!isDesktop && sidebarOpen && <div className="fixed inset-0 z-[55] bg-black/50 print:hidden" onClick={() => setSidebarOpen(false)} aria-hidden />}
+      <aside aria-hidden={!isDesktop && !sidebarOpen} className={`${isDesktop ? `${sidebarOpen ? 'w-60' : 'w-16'} transition-all duration-300 flex-shrink-0 h-full z-30` : `fixed inset-y-0 left-0 w-64 z-[60] transition-transform duration-200 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full invisible'}`} bg-slate-900 flex flex-col`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-800">
           <Logo size={32} />
@@ -181,9 +188,9 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 relative z-50">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 relative z-50">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -214,7 +221,7 @@ export default function AdminLayout() {
               </button>
 
               {showNotif && (
-                <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50">
+                <div className="fixed left-3 right-3 top-[4.25rem] sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100">
                     <p className="text-sm font-semibold text-slate-900">Notifikasi</p>
                     <span className="text-xs text-slate-400">{unreadCount} perlu perhatian</span>
@@ -280,7 +287,7 @@ export default function AdminLayout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto bg-slate-50">
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <Outlet />
           </div>
         </main>

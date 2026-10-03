@@ -185,7 +185,7 @@ export default function OrderManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-slate-900">Papan Pesanan</h1>
           <p className="text-slate-500 text-sm mt-1">{currentUser?.branchName}. Seret kartu atau tekan tombol di kartu untuk mengubah status.</p>
