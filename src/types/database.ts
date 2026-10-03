@@ -270,6 +270,48 @@ export type Database = {
           },
         ];
       };
+      inventory_catalog: {
+        Row: {
+          id: string;
+          name: string;
+          category: string;
+          unit: string;
+          unit_cost: number;
+          supplier: string | null;
+          default_min_stock: number;
+          default_reorder_point: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          category?: string;
+          unit: string;
+          unit_cost?: number;
+          supplier?: string | null;
+          default_min_stock?: number;
+          default_reorder_point?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          category?: string;
+          unit?: string;
+          unit_cost?: number;
+          supplier?: string | null;
+          default_min_stock?: number;
+          default_reorder_point?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       inventory_items: {
         Row: {
           id: string;
@@ -286,6 +328,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           is_active: boolean;
+          catalog_id: string;
         };
         Insert: {
           id?: string;
@@ -302,6 +345,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           is_active?: boolean;
+          catalog_id: string;
         };
         Update: {
           id?: string;
@@ -318,6 +362,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           is_active?: boolean;
+          catalog_id?: string;
         };
         Relationships: [
           {
@@ -325,6 +370,13 @@ export type Database = {
             columns: ["branch_id"];
             isOneToOne: false;
             referencedRelation: "branches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_items_catalog_id_fkey";
+            columns: ["catalog_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_catalog";
             referencedColumns: ["id"];
           },
         ];
@@ -1047,6 +1099,14 @@ export type Database = {
       commission_report: {
         Args: { p_branch?: string; p_from: string; p_to: string };
         Returns: Json;
+      };
+      transfer_stock: {
+        Args: { p_item_id: string; p_to_branch: string; p_qty: number; p_note?: string };
+        Returns: number;
+      };
+      transfer_destinations: {
+        Args: { p_item_id: string };
+        Returns: { branch_id: string; branch_name: string; branch_code: string }[];
       };
       record_stock: {
         Args: { p_item_id: string; p_kind: string; p_qty: number; p_note?: string };

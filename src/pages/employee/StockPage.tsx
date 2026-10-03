@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ArrowDownToLine, ArrowUpFromLine, History, Package, Search } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, History, Package, Search } from 'lucide-react';
 
 import { selectClass } from '@/components/shared/FormField';
 import { EmptyState, ErrorPanel, TableSkeleton } from '@/components/shared/QueryStatus';
 import { stockStatus, type MoveKind, type StockItem, type StockStatus } from '@/features/inventory/api';
 import { useStockItems } from '@/features/inventory/hooks';
-import { fmtQty, StockHistoryModal, StockMoveModal } from '@/features/inventory/StockDialogs';
+import { fmtQty, StockHistoryModal, StockMoveModal, TransferModal } from '@/features/inventory/StockDialogs';
 import { pesanError } from '@/lib/errors';
 import { formatTanggal } from '@/lib/format';
 
@@ -21,6 +21,7 @@ export default function StockPage() {
   const [status, setStatus] = useState('');
   const [move, setMove] = useState<{ item: StockItem; kind: MoveKind } | null>(null);
   const [history, setHistory] = useState<StockItem | null>(null);
+  const [transfer, setTransfer] = useState<StockItem | null>(null);
 
   const list = useMemo(() => (items.data ?? []).filter((i) => i.is_active), [items.data]);
   const rows = useMemo(() => list.filter((i) => {
@@ -63,9 +64,10 @@ export default function StockPage() {
                     <div className="text-right shrink-0"><p className="font-semibold text-slate-900">{fmtQty(i.current_stock)} <span className="text-xs text-slate-400 font-normal">{i.unit}</span></p>
                       <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${BADGE[s].cls}`}>{BADGE[s].label}</span></div>
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <button onClick={() => setMove({ item: i, kind: 'in' })} data-m-act="in" className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium"><ArrowDownToLine className="h-4 w-4" /> Terima</button>
                     <button onClick={() => setMove({ item: i, kind: 'out' })} data-m-act="out" className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium"><ArrowUpFromLine className="h-4 w-4" /> Pakai</button>
+                    <button onClick={() => setTransfer(i)} data-m-act="transfer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-indigo-50 text-indigo-700 text-sm font-medium"><ArrowLeftRight className="h-4 w-4" /> Kirim</button>
                     <button onClick={() => setHistory(i)} data-m-act="history" className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium"><History className="h-4 w-4" /> Riwayat</button>
                   </div>
                 </li>
@@ -89,6 +91,7 @@ export default function StockPage() {
                       <td className="px-6 py-3"><div className="flex justify-end gap-2">
                         <button onClick={() => setMove({ item: i, kind: 'in' })} data-act="in" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm hover:bg-emerald-100"><ArrowDownToLine className="h-4 w-4" /> Terima</button>
                         <button onClick={() => setMove({ item: i, kind: 'out' })} data-act="out" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-sm hover:bg-amber-100"><ArrowUpFromLine className="h-4 w-4" /> Pakai</button>
+                        <button onClick={() => setTransfer(i)} data-act="transfer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-sm hover:bg-indigo-100"><ArrowLeftRight className="h-4 w-4" /> Kirim</button>
                         <button onClick={() => setHistory(i)} aria-label={`Riwayat ${i.name}`} data-act="history" className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"><History className="h-4 w-4" /></button>
                       </div></td>
                     </tr>
@@ -103,6 +106,7 @@ export default function StockPage() {
 
       <StockMoveModal item={move?.item ?? null} kind={move?.kind ?? 'in'} onClose={() => setMove(null)} />
       <StockHistoryModal item={history} onClose={() => setHistory(null)} />
+      <TransferModal item={transfer} onClose={() => setTransfer(null)} />
     </div>
   );
 }

@@ -15,20 +15,22 @@ export function stockStatus(i: Pick<Tables<'inventory_items'>, 'current_stock' |
   return 'ok';
 }
 
-export interface ItemInput {
+export type CatalogItem = Tables<'inventory_catalog'>;
+
+export interface CatalogInput {
   id?: string;
-  branch_id: string;
   name: string;
   category: string;
   unit: string;
-  min_stock: number;
-  reorder_point: number;
   unit_cost: number;
   supplier: string | null;
+  default_min_stock: number;
+  default_reorder_point: number;
   is_active: boolean;
-  /** Hanya saat membuat barang baru. */
-  initial_stock?: number;
 }
+
+/** Pengaturan milik satu cabang. Nama, satuan, harga, dan pemasok berasal dari katalog. */
+export interface BranchItemInput { id: string; min_stock: number; reorder_point: number; is_active: boolean }
 
 export async function fetchItems(): Promise<StockItem[]> {
   const { data, error } = await supabase.from('inventory_items').select('*, branch:branches(name, code)').order('name');
@@ -36,22 +38,28 @@ export async function fetchItems(): Promise<StockItem[]> {
   return (data ?? []) as StockItem[];
 }
 
-export async function saveItem(v: ItemInput): Promise<void> {
-  const base = {
-    name: v.name.trim(), category: v.category, unit: v.unit.trim(), min_stock: v.min_stock, reorder_point: v.reorder_point,
-    unit_cost: v.unit_cost, supplier: v.supplier?.trim() || null, is_active: v.is_active,
-  };
-  if (v.id) {
-    const { error } = await supabase.from('inventory_items').update(base).eq('id', v.id);
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from('inventory_items').insert({ ...base, branch_id: v.branch_id, current_stock: v.initial_stock ?? 0 });
-    if (error) throw error;
-  }
+export async function saveBranchItem(v: BranchItemInput): Promise<void> {
+  const { error } = await supabase.from('inventory_items').update({ min_stock: v.min_stock, reorder_point: v.reorder_point, is_active: v.is_active }).eq('id', v.id);
+  if (error) throw error;
 }
 
-export async function deleteItem(id: string): Promise<void> {
-  const { error } = await supabase.from('inventory_items').delete().eq('id', id);
+export async function fetchCatalog(): Promise<CatalogItem[]> {
+  const { data, error } = await supabase.from('inventory_catalog').select('*').order('name');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function saveCatalog(v: CatalogInput): Promise<void> {
+  const row = {
+    name: v.name.trim(), category: v.category, unit: v.unit.trim(), unit_cost: v.unit_cost, supplier: v.supplier?.trim() || null,
+    default_min_stock: v.default_min_stock, default_reorder_point: v.default_reorder_point, is_active: v.is_active,
+  };
+  const { error } = v.id ? await supabase.from('inventory_catalog').update(row).eq('id', v.id) : await supabase.from('inventory_catalog').insert(row);
+  if (error) throw error;
+}
+
+export async function deleteCatalog(id: string): Promise<void> {
+  const { error } = await supabase.from('inventory_catalog').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -65,4 +73,18 @@ export async function fetchMovements(itemId: string, limit = 100): Promise<Stock
   const { data, error } = await supabase.from('stock_movements').select('*').eq('item_id', itemId).order('created_at', { ascending: false }).limit(limit);
   if (error) throw error;
   return data ?? [];
+}
+
+export interface TransferDestination { branch_id: string; branch_name: string; branch_code: string }
+
+export async function fetchTransferDestinations(itemId: string): Promise<TransferDestination[]> {
+  const { data, error } = await supabase.rpc('transfer_destinations', { p_item_id: itemId });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function transferStock(input: { itemId: string; toBranch: string; qty: number; note: string }): Promise<number> {
+  const { data, error } = await supabase.rpc('transfer_stock', { p_item_id: input.itemId, p_to_branch: input.toBranch, p_qty: input.qty, p_note: input.note.trim() || undefined });
+  if (error) throw error;
+  return data;
 }

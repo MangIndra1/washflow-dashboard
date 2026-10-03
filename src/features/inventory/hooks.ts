@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { deleteItem, fetchItems, fetchMovements, recordStock, saveItem, stockStatus } from './api';
+import { deleteCatalog, fetchTransferDestinations, transferStock, fetchCatalog, fetchItems, fetchMovements, recordStock, saveBranchItem, saveCatalog, stockStatus } from './api';
 
 export function useStockItems() {
   return useQuery({ queryKey: ['inventory', 'items'], queryFn: fetchItems, refetchInterval: 60_000 });
@@ -20,6 +20,12 @@ function useRefresh() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ['inventory'] });
 }
-export function useSaveItem() { const r = useRefresh(); return useMutation({ mutationFn: saveItem, onSuccess: r }); }
-export function useDeleteItem() { const r = useRefresh(); return useMutation({ mutationFn: deleteItem, onSuccess: r }); }
+export function useCatalog() { return useQuery({ queryKey: ['inventory', 'catalog'], queryFn: fetchCatalog }); }
+export function useSaveBranchItem() { const r = useRefresh(); return useMutation({ mutationFn: saveBranchItem, onSuccess: r }); }
+export function useSaveCatalog() { const r = useRefresh(); return useMutation({ mutationFn: saveCatalog, onSuccess: r }); }
+export function useDeleteCatalog() { const r = useRefresh(); return useMutation({ mutationFn: deleteCatalog, onSuccess: r }); }
 export function useRecordStock() { const r = useRefresh(); return useMutation({ mutationFn: recordStock, onSuccess: r }); }
+export function useTransferDestinations(itemId: string | null) {
+  return useQuery({ queryKey: ['inventory', 'destinations', itemId], queryFn: () => fetchTransferDestinations(itemId!), enabled: !!itemId });
+}
+export function useTransferStock() { const r = useRefresh(); return useMutation({ mutationFn: transferStock, onSuccess: r }); }

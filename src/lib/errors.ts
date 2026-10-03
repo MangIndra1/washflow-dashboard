@@ -12,6 +12,8 @@ const BY_CONSTRAINT: Array<[string, string]> = [
   ['branches_code_key', 'Kode cabang sudah dipakai cabang lain.'],
   ['services_name_key', 'Nama layanan sudah dipakai.'],
   ['profiles_email_key', 'Email sudah terdaftar.'],
+  ['inventory_catalog_name_key', 'Nama barang sudah ada di katalog.'],
+  ['inventory_catalog_reorder', 'Titik pesan ulang harus sama dengan atau lebih besar dari stok minimum.'],
   ['inventory_items_branch_id_name_key', 'Nama barang sudah ada di cabang ini.'],
   ['promotions_code_key', 'Kode promo sudah dipakai promo lain.'],
   ['membership_tiers_name_key', 'Nama tingkat sudah dipakai tingkat lain.'],
