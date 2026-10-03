@@ -202,3 +202,8 @@ Aturan: logika bisnis hidup di `features/`, halaman dibuat setipis mungkin.
 - **Workflow**: `automation/n8n/washflow-wa-siap-diambil.json` + `README.md` (template Meta, credential, uji, troubleshooting). Nilai yang harus diisi ada di node Config. Service role key hanya dimasukkan langsung ke credential n8n, tidak pernah ke repo atau frontend.
 - **UI**: saklar dan ringkasan 24 jam di `/admin/settings`, status notifikasi per pesanan di `OrderDetailSheet` (Menunggu, Terkirim, Gagal, Dilewati). Staf hanya bisa MELIHAT `notifications` (RLS mengikuti visibilitas pesanan).
 - **Pengujian**: 40 uji SQL (akses, RLS, klaim, retry, kedaluwarsa), 16 uji UI, dan n8n 2.x sungguhan menjalankan workflow terhadap database lokal + server WhatsApp tiruan. Belum ada uji ke WhatsApp Cloud API sungguhan.
+
+## Audit keamanan (2026-10)
+- Diuji aktif: RLS di semua tabel public, anon hanya bisa `track_order` (token 128-bit, hanya nama depan pelanggan), karyawan tidak bisa naik role/ubah poin/ubah total & status bayar order/lihat cabang lain, semua fungsi security definer memakai `search_path` terkunci, view `security_invoker`.
+- Ditambahkan: header CSP + HSTS di `vercel.json`; react-router dinaikkan ke ^7.18.4.
+- Diketahui/diterima: `exceljs`→`uuid` (moderate, tidak dieksploitasi lewat input pengguna); CORS `*` pada edge function (dilindungi JWT admin).
